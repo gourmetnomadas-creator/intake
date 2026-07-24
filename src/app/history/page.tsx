@@ -211,14 +211,19 @@ export default function HistoryPage() {
           <p className="mb-2 text-xs font-medium text-slate-500">Daily calories · last 14 days</p>
           <div className="flex h-24 items-end gap-1">
             {chartDays.map((d) => (
-              <div key={d.key} className="flex flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t bg-indigo-400"
-                  style={{ height: `${(d.kcal / maxKcal) * 100}%` }}
-                  title={`${d.kcal} kcal`}
-                />
-                <span className="text-[9px] text-slate-400">{d.day}</span>
-              </div>
+              <div
+                key={d.key}
+                className="flex-1 rounded-t bg-indigo-400"
+                style={{ height: d.kcal > 0 ? `${Math.max(4, (d.kcal / maxKcal) * 100)}%` : '2px' }}
+                title={`${d.kcal} kcal`}
+              />
+            ))}
+          </div>
+          <div className="mt-1 flex gap-1">
+            {chartDays.map((d) => (
+              <span key={d.key} className="flex-1 text-center text-[9px] text-slate-400">
+                {d.day}
+              </span>
             ))}
           </div>
         </div>
