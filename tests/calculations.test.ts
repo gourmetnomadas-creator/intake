@@ -10,6 +10,43 @@ import {
   formatKcal,
 } from '../src/lib/calculations';
 import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
+import { buildMarkdownReport } from '../src/lib/export-report';
+
+describe('buildMarkdownReport', () => {
+  it('includes profile, day totals with items, and supplement adherence', () => {
+    const md = buildMarkdownReport({
+      profile: { name: 'Joa', current_weight_kg: 80, birthdate: '1988-07-03' },
+      meals: [
+        {
+          date: '2026-07-24',
+          meal_time: '2026-07-24T08:00:00.000Z',
+          meal_type: 'breakfast',
+          description: 'oats',
+          total_kcal: 400,
+          total_protein_g: 20,
+          total_carbs_g: 60,
+          total_fat_g: 8,
+          items: [
+            { food_name: 'oats', grams: 80, kcal: 300, protein_g: 12, carbs_g: 50, fat_g: 5 },
+          ],
+        },
+      ],
+      weights: [{ date: '2026-07-20', weight_kg: 79.5, notes: null }],
+      supplements: [
+        { id: 'a', name: 'Magnesium', dose: '400mg', time_of_day: 'night', with_food: true, tip: 't' },
+      ],
+      supplementLogs: [{ supplement_id: 'a', date: '2026-07-24' }],
+    });
+    expect(md).toContain('# Plate Log');
+    expect(md).toContain('Joa');
+    expect(md).toContain('2026-07-24 — 400 kcal');
+    expect(md).toContain('oats: 80 g');
+    expect(md).toContain('Magnesium');
+    expect(md).toContain('tildado 1 día(s)');
+    // protein target 80 * 1.6 = 128
+    expect(md).toContain('128 g/día');
+  });
+});
 
 describe('analyzeMealSchema', () => {
   const base = {

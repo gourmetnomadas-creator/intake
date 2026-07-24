@@ -8,6 +8,7 @@ import { Profile } from '@/types';
 import AppShell from '@/components/AppShell';
 import ProfileForm from '@/components/ProfileForm';
 import LoadingState from '@/components/LoadingState';
+import { buildMarkdownReport } from '@/lib/export-report';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
@@ -16,6 +17,50 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    const supabase = createClient();
+    const s = await getUserSession();
+    if (!s) {
+      setExporting(false);
+      return;
+    }
+    const userId = s.user.id;
+
+    const [prof, meals, weights, supps, logs] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase
+        .from('meals')
+        .select('*, items:meal_items(*)')
+        .eq('user_id', userId)
+        .eq('status', 'saved')
+        .order('date', { ascending: false }),
+      supabase.from('body_weight_logs').select('*').eq('user_id', userId),
+      supabase.from('supplements').select('*').eq('user_id', userId).order('created_at'),
+      supabase.from('supplement_logs').select('supplement_id, date').eq('user_id', userId),
+    ]);
+
+    const md = buildMarkdownReport({
+      profile: prof.data ?? null,
+      meals: meals.data ?? [],
+      weights: weights.data ?? [],
+      supplements: supps.data ?? [],
+      supplementLogs: logs.data ?? [],
+    });
+
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plate-log-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setExporting(false);
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -70,6 +115,21 @@ export default function ProfilePage() {
           className="w-full rounded-xl border border-slate-200 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
           Log body weight
+        </button>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+        <p className="text-sm font-semibold text-slate-700">📄 Export data</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Downloads a Markdown file with your whole history (profile, meals, weight,
+          supplements). Paste it into Claude or any AI to analyze your habits.
+        </p>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="mt-3 w-full rounded-full bg-indigo-500 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+        >
+          {exporting ? 'Preparing…' : 'Export Markdown report'}
         </button>
       </div>
       {!DEV_MODE && (
