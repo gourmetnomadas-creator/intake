@@ -56,18 +56,14 @@ Comidas que el usuario suele comer/cocinar: ${recentFoods || '(sin historial aú
     return NextResponse.json({ suggestions });
   } catch (error: any) {
     console.error('Suggest meal error:', error);
+    const rateLimited = error?.status === 429 || String(error?.message ?? '').includes('429');
     return NextResponse.json(
       {
-        error: 'Could not get suggestions. Please try again.',
-        _debug: {
-          message: String(error?.message ?? error),
-          provider: process.env.AI_PROVIDER ?? null,
-          hasGemini: !!process.env.GEMINI_API_KEY,
-          geminiLen: (process.env.GEMINI_API_KEY ?? '').length,
-          model: getModel(),
-        },
+        error: rateLimited
+          ? 'The AI is busy right now (rate limit). Please try again in a minute.'
+          : 'Could not get suggestions. Please try again.',
       },
-      { status: 500 }
+      { status: rateLimited ? 429 : 500 }
     );
   }
 }

@@ -75,12 +75,12 @@ export default function SuggestMealCard({
           recentFoods,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         setSuggestions(data.suggestions || []);
         setOpen(true);
       } else {
-        alert('Could not get suggestions. Please try again.');
+        alert(data.error || 'Could not get suggestions. Please try again.');
       }
     } catch {
       alert('Could not get suggestions. Please try again.');
