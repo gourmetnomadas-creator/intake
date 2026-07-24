@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Meal, Profile } from '@/types';
-import { getMealTypeLabel, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
@@ -16,7 +16,6 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { useRouter } from 'next/navigation';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-const mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
 export default function TodayDashboard() {
   const router = useRouter();
@@ -97,12 +96,6 @@ export default function TodayDashboard() {
     totalFat: meals.reduce((sum, m) => sum + m.total_fat_g, 0),
   };
 
-  const groupedMeals = mealOrder.map((type) => ({
-    type,
-    label: getMealTypeLabel(type),
-    meals: meals.filter((m) => m.meal_type === type),
-  }));
-
   return (
     <AppShell>
       <h2 className="mb-4 text-sm font-medium text-slate-500">{formatDate(new Date().toISOString())}</h2>
@@ -113,26 +106,15 @@ export default function TodayDashboard() {
         proteinTarget={proteinTarget}
       />
 
-      <div className="mt-6 space-y-4">
-        {groupedMeals.map((group) =>
-          group.meals.length > 0 ? (
-            <div key={group.type}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {group.label}
-              </h3>
-              <div className="space-y-2">
-                {group.meals.map((meal) => (
-                  <MealCard
-                    key={meal.id}
-                    meal={meal}
-                    onEdit={(m) => router.push(`/meals/${m.id}`)}
-                    onDelete={setDeleteTarget}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null
-        )}
+      <div className="mt-6 space-y-2">
+        {meals.map((meal) => (
+          <MealCard
+            key={meal.id}
+            meal={meal}
+            onEdit={(m) => router.push(`/meals/${m.id}`)}
+            onDelete={setDeleteTarget}
+          />
+        ))}
 
         {meals.length === 0 && (
           <EmptyState

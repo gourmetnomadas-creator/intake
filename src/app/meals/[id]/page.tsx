@@ -16,6 +16,7 @@ export default function EditMealPage({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const [meal, setMeal] = useState<Meal | null>(null);
   const [mealType, setMealType] = useState('lunch');
+  const [timeHHMM, setTimeHHMM] = useState('12:00');
   const [items, setItems] = useState<AIAnalysisItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +46,10 @@ export default function EditMealPage({ params }: { params: Promise<{ id: string 
     if (meal) {
       setMeal(meal);
       setMealType(meal.meal_type);
+      const t = new Date(meal.meal_time);
+      setTimeHHMM(
+        `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+      );
       setItems(
         (meal.items || []).map((item: any) => ({
           foodName: item.food_name,
@@ -77,10 +82,14 @@ export default function EditMealPage({ params }: { params: Promise<{ id: string 
       { totalKcal: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
     );
 
+    // Rebuild meal_time from the meal's own date + the edited time-of-day.
+    const newMealTime = new Date(`${meal.date}T${timeHHMM}:00`);
+
     await supabase
       .from('meals')
       .update({
         meal_type: mealType,
+        meal_time: isNaN(newMealTime.getTime()) ? meal.meal_time : newMealTime.toISOString(),
         total_kcal: totals.totalKcal,
         total_protein_g: totals.totalProtein,
         total_carbs_g: totals.totalCarbs,
@@ -122,23 +131,34 @@ export default function EditMealPage({ params }: { params: Promise<{ id: string 
         <p className="mb-4 text-sm text-slate-500">{meal.description}</p>
       )}
 
-      <div className="mb-4">
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Meal type</label>
-        <div className="grid grid-cols-4 gap-2">
-          {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setMealType(type)}
-              className={`rounded-lg py-2 text-sm font-medium capitalize transition ${
-                mealType === type
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-              }`}
-            >
-              {type}
-            </button>
-          ))}
+      <div className="mb-4 grid grid-cols-[1fr_auto] gap-3">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Meal type</label>
+          <div className="grid grid-cols-4 gap-2">
+            {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setMealType(type)}
+                className={`rounded-lg py-2 text-xs font-medium capitalize transition ${
+                  mealType === type
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Time</label>
+          <input
+            type="time"
+            value={timeHHMM}
+            onChange={(e) => setTimeHHMM(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          />
         </div>
       </div>
 
