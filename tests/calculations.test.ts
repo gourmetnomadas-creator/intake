@@ -37,7 +37,7 @@ describe('buildMarkdownReport', () => {
       ],
       supplementLogs: [{ supplement_id: 'a', date: '2026-07-24' }],
     });
-    expect(md).toContain('# Plate Log');
+    expect(md).toContain('# Intake');
     expect(md).toContain('Joa');
     expect(md).toContain('2026-07-24 — 400 kcal');
     expect(md).toContain('oats: 80 g');

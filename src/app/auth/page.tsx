@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Logo from '@/components/Logo';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -103,7 +104,10 @@ export default function AuthPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-bold text-slate-800">Plate Log</h1>
+        <div className="mb-1 flex items-center gap-2">
+          <Logo size={32} />
+          <h1 className="text-2xl font-bold text-slate-900">Intake</h1>
+        </div>
         <p className="mb-6 text-sm text-slate-500">Sign in with your email</p>
         <form onSubmit={handleLogin} className="space-y-4">
           <input

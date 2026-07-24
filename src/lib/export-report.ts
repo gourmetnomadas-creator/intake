@@ -65,7 +65,7 @@ export function buildMarkdownReport(data: ReportData): string {
   const now = new Date();
   const lines: string[] = [];
 
-  lines.push('# Plate Log — Informe de datos');
+  lines.push('# Intake — Informe de datos');
   lines.push('');
   lines.push(`Generado: ${now.toISOString().split('T')[0]}`);
   lines.push('');

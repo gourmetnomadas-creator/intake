@@ -1,21 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #eef0fb;
-  --foreground: #0f172a;
+  --background: #f6f5f1;
+  --foreground: #17201d;
 }
 
+/*
+  Intake visual identity. The app was built with slate/indigo/emerald utility
+  classes; we remap those design tokens to the Intake palette so every existing
+  component adopts the new look without being rewritten:
+    indigo  -> teal    (primary / brand)
+    emerald -> coral   (protein / highlights)
+    slate   -> warm neutrals (ink, muted, lines, cream)
+*/
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Neutrals — warm greige */
+  --color-slate-50: #f6f5f1;
+  --color-slate-100: #edebe4;
+  --color-slate-200: #e3e1da;
+  --color-slate-300: #cfccc2;
+  --color-slate-400: #8a928d;
+  --color-slate-500: #6b7570;
+  --color-slate-600: #55605a;
+  --color-slate-700: #2f3833;
+  --color-slate-800: #1f2823;
+  --color-slate-900: #17201d;
+
+  /* Primary — teal */
+  --color-indigo-50: #e7f1ef;
+  --color-indigo-100: #d3e5e1;
+  --color-indigo-200: #b7d6d0;
+  --color-indigo-300: #8fc0b8;
+  --color-indigo-400: #4e9488;
+  --color-indigo-500: #1e6f63;
+  --color-indigo-600: #164f46;
+  --color-indigo-700: #164f46;
+
+  /* Secondary — coral (protein / success accents) */
+  --color-emerald-50: #fbeae6;
+  --color-emerald-100: #f7d5cd;
+  --color-emerald-400: #ee8a76;
+  --color-emerald-500: #e8654b;
+  --color-emerald-600: #cf4f37;
+
+  /* Rounder cards + the single soft elevation from the handoff */
+  --radius-2xl: 20px;
+  --shadow-sm: 0 1px 3px rgba(23, 32, 29, 0.06);
 }
 
 body {
-  background: linear-gradient(180deg, var(--background) 0%, #fafbfe 480px, #fafbfe 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Outfit for identity + headings; Inter (body font) carries everything else. */
+h1, h2, h3 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
 }
 
 input, textarea, select {

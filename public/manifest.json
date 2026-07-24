@@ -1,13 +1,19 @@
 {
-  "name": "Plate Log",
-  "short_name": "Plate Log",
-  "description": "Personal food photo calorie tracker",
+  "name": "Intake",
+  "short_name": "Intake",
+  "description": "Intelligent, effortless nutrition tracking",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafaf9",
-  "theme_color": "#fafaf9",
+  "background_color": "#f6f5f1",
+  "theme_color": "#f6f5f1",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
