@@ -1,7 +1,7 @@
 'use client';
 
 import { Meal } from '@/types';
-import { getMealTypeLabel, formatTime } from '@/lib/utils';
+import { getMealTypeLabel, formatTime, mealEmoji } from '@/lib/utils';
 
 interface MealCardProps {
   meal: Meal;
@@ -20,8 +20,8 @@ export default function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
             className="h-16 w-16 flex-shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-2xl">
-            🍽️
+          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-3xl">
+            {mealEmoji(meal)}
           </div>
         )}
         <div className="min-w-0 flex-1">
