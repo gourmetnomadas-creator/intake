@@ -10,7 +10,6 @@ import AppShell from '@/components/AppShell';
 import DailySummaryCard from '@/components/DailySummaryCard';
 import SuggestMealCard from '@/components/SuggestMealCard';
 import MacrosCard from '@/components/MacrosCard';
-import MiniTrend from '@/components/MiniTrend';
 import SupplementsCard from '@/components/SupplementsCard';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
@@ -23,7 +22,6 @@ export default function TodayDashboard() {
   const router = useRouter();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [trend, setTrend] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Meal | null>(null);
   const [session, setSession] = useState<any>(null);
@@ -46,12 +44,8 @@ export default function TodayDashboard() {
 
   const loadData = async (supabase: any, userId: string) => {
     const today = new Date().toISOString().split('T')[0];
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const start = new Date();
-    start.setDate(start.getDate() - 13);
-    const startKey = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
 
-    const [mealsRes, profileRes, trendRes] = await Promise.all([
+    const [mealsRes, profileRes] = await Promise.all([
       supabase
         .from('meals')
         .select('*, items:meal_items(*)')
@@ -60,26 +54,10 @@ export default function TodayDashboard() {
         .eq('status', 'saved')
         .order('meal_time', { ascending: true }),
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase
-        .from('meals')
-        .select('date, total_kcal')
-        .eq('user_id', userId)
-        .eq('status', 'saved')
-        .gte('date', startKey),
     ]);
 
     if (mealsRes.data) setMeals(mealsRes.data);
     if (profileRes.data) setProfile(profileRes.data);
-
-    const byDay = new Map<string, number>();
-    for (const m of trendRes.data ?? []) byDay.set(m.date, (byDay.get(m.date) ?? 0) + m.total_kcal);
-    const values = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (13 - i));
-      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      return Math.round(byDay.get(key) ?? 0);
-    });
-    setTrend(values);
 
     setLoading(false);
   };
@@ -234,8 +212,6 @@ export default function TodayDashboard() {
           carbsTarget={carbsTarget}
           fatTarget={fatTarget}
         />
-
-        {trend.some((v) => v > 0) && <MiniTrend values={trend} />}
 
         <SupplementsCard userId={session.user.id} />
       </div>
