@@ -97,7 +97,9 @@ export default function ProfilePage() {
       updated_at: new Date().toISOString(),
     });
 
-    if (!error) {
+    if (error) {
+      alert(`Could not save profile: ${error.message}`);
+    } else {
       setProfile((prev) => prev ? { ...prev, ...data } : null);
     }
     setSaving(false);
