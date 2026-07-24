@@ -54,7 +54,33 @@ export default function FavoritesPage() {
     const hour = new Date().getHours();
     const mealType = hour < 11 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 19 ? 'snack' : 'dinner';
 
-    const { data: meal } = await supabase
+    const items = (favorite.items || []).map((item) => ({
+      food_name: item.food_name,
+      grams: item.grams,
+      kcal_per_100g: item.kcal_per_100g,
+      protein_per_100g: item.protein_per_100g,
+      carbs_per_100g: item.carbs_per_100g,
+      fat_per_100g: item.fat_per_100g,
+      kcal: (item.grams * item.kcal_per_100g) / 100,
+      protein_g: (item.grams * item.protein_per_100g) / 100,
+      carbs_g: (item.grams * item.carbs_per_100g) / 100,
+      fat_g: (item.grams * item.fat_per_100g) / 100,
+      source: 'favorite',
+      confidence: 1,
+    }));
+
+    const totals = items.reduce(
+      (acc, item) => ({
+        total_kcal: acc.total_kcal + item.kcal,
+        total_protein_g: acc.total_protein_g + item.protein_g,
+        total_carbs_g: acc.total_carbs_g + item.carbs_g,
+        total_fat_g: acc.total_fat_g + item.fat_g,
+      }),
+      { total_kcal: 0, total_protein_g: 0, total_carbs_g: 0, total_fat_g: 0 }
+    );
+
+    // Insert the meal already saved, with totals — no fragile draft->saved step.
+    const { data: meal, error: mealError } = await supabase
       .from('meals')
       .insert({
         user_id: session.user.id,
@@ -62,44 +88,22 @@ export default function FavoritesPage() {
         meal_type: mealType,
         description: favorite.description || favorite.name,
         total_weight_g: favorite.default_total_weight_g,
-        status: 'draft',
+        ...totals,
+        status: 'saved',
       })
       .select()
       .single();
 
-    if (meal && favorite.items) {
-      const items = favorite.items.map((item) => ({
-        meal_id: meal.id,
-        food_name: item.food_name,
-        grams: item.grams,
-        kcal_per_100g: item.kcal_per_100g,
-        protein_per_100g: item.protein_per_100g,
-        carbs_per_100g: item.carbs_per_100g,
-        fat_per_100g: item.fat_per_100g,
-        kcal: (item.grams * item.kcal_per_100g) / 100,
-        protein_g: (item.grams * item.protein_per_100g) / 100,
-        carbs_g: (item.grams * item.carbs_per_100g) / 100,
-        fat_g: (item.grams * item.fat_per_100g) / 100,
-        source: 'favorite',
-        confidence: 1,
-      }));
+    if (mealError || !meal) {
+      alert('Could not add this favorite. Please try again.');
+      return;
+    }
 
-      await supabase.from('meal_items').insert(items);
-
-      const totals = items.reduce(
-        (acc, item) => ({
-          totalKcal: acc.totalKcal + item.kcal,
-          totalProtein: acc.totalProtein + item.protein_g,
-          totalCarbs: acc.totalCarbs + item.carbs_g,
-          totalFat: acc.totalFat + item.fat_g,
-        }),
-        { totalKcal: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
-      );
-
-      await supabase
-        .from('meals')
-        .update({ ...totals, status: 'saved' })
-        .eq('id', meal.id);
+    if (items.length > 0) {
+      const { error: itemsError } = await supabase
+        .from('meal_items')
+        .insert(items.map((it) => ({ ...it, meal_id: meal.id })));
+      if (itemsError) console.error('Error saving favorite items:', itemsError);
     }
 
     router.push('/');
