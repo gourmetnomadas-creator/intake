@@ -41,6 +41,7 @@ export default function SuggestMealCard({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [open, setOpen] = useState(true);
 
   const generate = async () => {
     setLoading(true);
@@ -77,6 +78,7 @@ export default function SuggestMealCard({
       if (res.ok) {
         const data = await res.json();
         setSuggestions(data.suggestions || []);
+        setOpen(true);
       } else {
         alert('Could not get suggestions. Please try again.');
       }
@@ -92,12 +94,27 @@ export default function SuggestMealCard({
 
   return (
     <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-700">What should I eat next?</p>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          onClick={() => suggestions && setOpen((o) => !o)}
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+        >
+          <span className="truncate text-sm font-semibold text-slate-700">
+            What should I eat next?
+          </span>
+          {suggestions && (
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              className={`flex-shrink-0 text-slate-400 transition-transform ${open ? '' : '-rotate-90'}`}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
         <button
           onClick={generate}
           disabled={loading}
-          className="rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+          className="flex-shrink-0 rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
         >
           {loading ? 'Thinking…' : suggestions ? 'Refresh' : 'Suggest'}
         </button>
@@ -109,7 +126,7 @@ export default function SuggestMealCard({
         </p>
       )}
 
-      {suggestions && (
+      {suggestions && open && (
         <div className="mt-3 space-y-2">
           {suggestions.map((s, i) => (
             <div key={i} className="rounded-xl border border-slate-200 p-3">
