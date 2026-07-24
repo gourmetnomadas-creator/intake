@@ -25,6 +25,8 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
   const [manualTarget, setManualTarget] = useState(
     profile?.manual_calorie_target?.toString() || ''
   );
+  const [dietType, setDietType] = useState(profile?.diet_type || '');
+  const [dietaryRestrictions, setDietaryRestrictions] = useState(profile?.dietary_restrictions || '');
 
   const derivedAge = ageFromBirthdate(birthdate) ?? profile?.age ?? null;
 
@@ -55,6 +57,8 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
       goal_type: goalType,
       manual_calorie_target: goalType === 'manual' ? parseInt(manualTarget) || null : null,
       calculated_calorie_target: calculatedTarget,
+      diet_type: dietType || null,
+      dietary_restrictions: dietaryRestrictions.trim() || null,
     });
   };
 
@@ -161,6 +165,40 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           />
         </div>
       )}
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <p className="mb-3 text-sm font-semibold text-slate-700">Dietary preferences</p>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Diet</label>
+          <select
+            value={dietType}
+            onChange={(e) => setDietType(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          >
+            <option value="">No preference (omnivore)</option>
+            <option value="vegetarian">Vegetarian</option>
+            <option value="vegan">Vegan</option>
+            <option value="pescatarian">Pescatarian</option>
+            <option value="keto">Keto</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div className="mt-3">
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Avoid / allergies
+          </label>
+          <textarea
+            value={dietaryRestrictions}
+            onChange={(e) => setDietaryRestrictions(e.target.value)}
+            placeholder="e.g. lactose, peanuts, no pork"
+            rows={2}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          />
+          <p className="mt-1 text-xs text-slate-400">
+            Used so meal suggestions always respect what you don&apos;t eat.
+          </p>
+        </div>
+      </div>
 
       {(calculatedTarget || proteinTarget) && (
         <div className="grid grid-cols-2 gap-3">

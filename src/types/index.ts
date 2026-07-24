@@ -8,6 +8,8 @@ export interface Profile {
   sex: string | null;
   activity_level: string | null;
   goal_type: string | null;
+  diet_type: string | null;
+  dietary_restrictions: string | null;
   manual_calorie_target: number | null;
   calculated_calorie_target: number | null;
   created_at: string;
