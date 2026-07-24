@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
 import { Meal } from '@/types';
-import { formatShortDate, formatTime, getMealTypeLabel } from '@/lib/utils';
+import { formatTime, getMealTypeLabel } from '@/lib/utils';
 import AppShell from '@/components/AppShell';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
@@ -169,9 +169,60 @@ export default function HistoryPage() {
   if (loading) return <AppShell><LoadingState /></AppShell>;
   if (!session) return null;
 
+  const dayLabel = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+
+  // Group the (already newest-first) meals by their date, with per-day totals.
+  const dayGroups: { date: string; meals: Meal[]; kcal: number; protein: number }[] = [];
+  const dayIndex = new Map<string, number>();
+  for (const m of filteredMeals) {
+    if (!dayIndex.has(m.date)) {
+      dayIndex.set(m.date, dayGroups.length);
+      dayGroups.push({ date: m.date, meals: [], kcal: 0, protein: 0 });
+    }
+    const g = dayGroups[dayIndex.get(m.date)!];
+    g.meals.push(m);
+    g.kcal += m.total_kcal;
+    g.protein += m.total_protein_g;
+  }
+
+  // Last 14 calendar days of total calories, for the overview chart.
+  const kcalByDate = new Map<string, number>();
+  for (const m of meals) kcalByDate.set(m.date, (kcalByDate.get(m.date) || 0) + m.total_kcal);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const chartDays = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (13 - i));
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return { key, kcal: Math.round(kcalByDate.get(key) || 0), day: d.getDate() };
+  });
+  const maxKcal = Math.max(1, ...chartDays.map((d) => d.kcal));
+
   return (
     <AppShell>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Meal history</h2>
+
+      {meals.length > 0 && (
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+          <p className="mb-2 text-xs font-medium text-slate-500">Daily calories · last 14 days</p>
+          <div className="flex h-24 items-end gap-1">
+            {chartDays.map((d) => (
+              <div key={d.key} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className="w-full rounded-t bg-indigo-400"
+                  style={{ height: `${(d.kcal / maxKcal) * 100}%` }}
+                  title={`${d.kcal} kcal`}
+                />
+                <span className="text-[9px] text-slate-400">{d.day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-4 flex gap-2">
         <input
@@ -196,62 +247,75 @@ export default function HistoryPage() {
           action={{ label: 'Add meal', onClick: () => router.push('/meals/new') }}
         />
       ) : (
-        <div className="space-y-3">
-          {filteredMeals.map((meal) => (
-            <div
-              key={meal.id}
-              className="rounded-xl border border-slate-200 bg-white p-3"
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
-                      {getMealTypeLabel(meal.meal_type)}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {formatShortDate(meal.meal_time)} • {formatTime(meal.meal_time)}
-                    </span>
-                  </div>
-                  {meal.description && (
-                    <p className="mt-1 truncate text-sm text-slate-700">{meal.description}</p>
-                  )}
-                  <div className="mt-1 flex gap-3 text-xs font-medium text-slate-600">
-                    <span>{Math.round(meal.total_kcal)} kcal</span>
-                    <span className="text-slate-400">P {Math.round(meal.total_protein_g)}g</span>
-                    <span className="text-slate-400">C {Math.round(meal.total_carbs_g)}g</span>
-                    <span className="text-slate-400">F {Math.round(meal.total_fat_g)}g</span>
-                  </div>
-                </div>
+        <div className="space-y-5">
+          {dayGroups.map((group) => (
+            <div key={group.date}>
+              <div className="mb-2 flex items-baseline justify-between">
+                <h3 className="text-sm font-semibold text-slate-700">{dayLabel(group.date)}</h3>
+                <span className="text-xs text-slate-400">
+                  {group.meals.length} {group.meals.length === 1 ? 'meal' : 'meals'} ·{' '}
+                  {Math.round(group.kcal)} kcal · P {Math.round(group.protein)}g
+                </span>
               </div>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => handleRepeat(meal)}
-                  className="flex-1 rounded-full bg-indigo-500 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-600"
-                >
-                  Repeat
-                </button>
-                <button
-                  onClick={() => router.push(`/meals/${meal.id}`)}
-                  className="flex-1 rounded-lg border border-slate-300 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleSaveFavorite(meal)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
-                    favoritedIds.has(meal.id)
-                      ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
-                      : 'border-slate-300 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {favoritedIds.has(meal.id) ? '★' : '☆'}
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(meal)}
-                  className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:text-red-600"
-                >
-                  ✕
-                </button>
+              <div className="space-y-3">
+                {group.meals.map((meal) => (
+                  <div
+                    key={meal.id}
+                    className="rounded-xl border border-slate-200 bg-white p-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+                            {getMealTypeLabel(meal.meal_type)}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {formatTime(meal.meal_time)}
+                          </span>
+                        </div>
+                        {meal.description && (
+                          <p className="mt-1 truncate text-sm text-slate-700">{meal.description}</p>
+                        )}
+                        <div className="mt-1 flex gap-3 text-xs font-medium text-slate-600">
+                          <span>{Math.round(meal.total_kcal)} kcal</span>
+                          <span className="text-slate-400">P {Math.round(meal.total_protein_g)}g</span>
+                          <span className="text-slate-400">C {Math.round(meal.total_carbs_g)}g</span>
+                          <span className="text-slate-400">F {Math.round(meal.total_fat_g)}g</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => handleRepeat(meal)}
+                        className="flex-1 rounded-full bg-indigo-500 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-600"
+                      >
+                        Repeat
+                      </button>
+                      <button
+                        onClick={() => router.push(`/meals/${meal.id}`)}
+                        className="flex-1 rounded-lg border border-slate-300 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleSaveFavorite(meal)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                          favoritedIds.has(meal.id)
+                            ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
+                            : 'border-slate-300 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {favoritedIds.has(meal.id) ? '★' : '☆'}
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(meal)}
+                        className="rounded-lg px-3 py-1.5 text-xs text-red-400 hover:text-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

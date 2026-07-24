@@ -22,6 +22,7 @@ export default function AddMealPage() {
   const [formData, setFormData] = useState<{
     description: string;
     mealType: MealType;
+    date: string;
     totalWeightGrams: number;
     weightContext: WeightContext;
     imageBase64: string | null;
@@ -40,6 +41,7 @@ export default function AddMealPage() {
   const handleAnalyze = async (data: {
     description: string;
     mealType: MealType;
+    date: string;
     totalWeightGrams: number;
     weightContext: WeightContext;
     imageBase64: string | null;
@@ -74,7 +76,6 @@ export default function AddMealPage() {
     setSaving(true);
 
     const supabase = createClient();
-    const today = new Date().toISOString().split('T')[0];
 
     const totals = editableItems.reduce(
       (acc, item) => ({
@@ -90,7 +91,7 @@ export default function AddMealPage() {
       .from('meals')
       .insert({
         user_id: session.user.id,
-        date: today,
+        date: formData.date,
         meal_type: formData.mealType,
         description: formData.description,
         total_weight_g: formData.totalWeightGrams,

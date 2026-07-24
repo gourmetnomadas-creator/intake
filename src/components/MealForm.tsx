@@ -8,6 +8,7 @@ interface MealFormProps {
   onSubmit: (data: {
     description: string;
     mealType: MealType;
+    date: string;
     totalWeightGrams: number;
     weightContext: WeightContext;
     imageBase64: string | null;
@@ -15,9 +16,12 @@ interface MealFormProps {
   loading: boolean;
 }
 
+const today = () => new Date().toISOString().split('T')[0];
+
 export default function MealForm({ onSubmit, loading }: MealFormProps) {
   const [description, setDescription] = useState('');
   const [mealType, setMealType] = useState<MealType>('lunch');
+  const [date, setDate] = useState(today());
   const [totalWeightGrams, setTotalWeightGrams] = useState('');
   const [weightContext, setWeightContext] = useState<WeightContext>('whole_plate');
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -40,6 +44,7 @@ export default function MealForm({ onSubmit, loading }: MealFormProps) {
     onSubmit({
       description: description.trim(),
       mealType,
+      date,
       totalWeightGrams: weight,
       weightContext,
       imageBase64,
@@ -66,6 +71,19 @@ export default function MealForm({ onSubmit, loading }: MealFormProps) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          Date{date !== today() ? ' (logging a past day)' : ''}
+        </label>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          max={today()}
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+        />
       </div>
 
       <div>
