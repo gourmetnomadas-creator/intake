@@ -14,6 +14,7 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
   const [name, setName] = useState(profile?.name || '');
   const [heightCm, setHeightCm] = useState(profile?.height_cm?.toString() || '');
   const [weightKg, setWeightKg] = useState(profile?.current_weight_kg?.toString() || '');
+  const [goalWeightKg, setGoalWeightKg] = useState(profile?.goal_weight_kg?.toString() || '');
   const [birthdate, setBirthdate] = useState(profile?.birthdate || '');
   const [sex, setSex] = useState(profile?.sex || '');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(
@@ -50,6 +51,7 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
       name: name || null,
       height_cm: parseFloat(heightCm) || null,
       current_weight_kg: parseFloat(weightKg) || null,
+      goal_weight_kg: parseFloat(goalWeightKg) || null,
       birthdate: birthdate || null,
       age: derivedAge,
       sex: sex || null,
@@ -150,6 +152,26 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           <option value="mild_surplus">Mild surplus</option>
           <option value="manual">Manual target</option>
         </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-slate-700">
+          Goal weight (kg)
+        </label>
+        <input
+          type="number"
+          value={goalWeightKg}
+          onChange={(e) => setGoalWeightKg(e.target.value)}
+          placeholder="e.g. 65"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+        />
+        {parseFloat(goalWeightKg) > 0 && weightNum > 0 && parseFloat(goalWeightKg) !== weightNum && (
+          <p className="mt-1 text-xs text-slate-400">
+            {parseFloat(goalWeightKg) > weightNum
+              ? `${(parseFloat(goalWeightKg) - weightNum).toFixed(1)} kg to gain from ${weightNum} kg.`
+              : `${(weightNum - parseFloat(goalWeightKg)).toFixed(1)} kg to lose from ${weightNum} kg.`}
+          </p>
+        )}
       </div>
 
       {goalType === 'manual' && (

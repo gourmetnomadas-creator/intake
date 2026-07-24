@@ -14,6 +14,7 @@ const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 export default function WeightPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<BodyWeightLog[]>([]);
+  const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,8 +25,19 @@ export default function WeightPage() {
         router.push('/auth');
         return;
       }
-      if (s) loadLogs(supabase, s.user.id);
-      else setLoading(false);
+      if (s) {
+        loadLogs(supabase, s.user.id);
+        supabase
+          .from('profiles')
+          .select('goal_weight_kg')
+          .eq('id', s.user.id)
+          .single()
+          .then(({ data }: { data: { goal_weight_kg: number | null } | null }) => {
+            if (data) setGoalWeight(data.goal_weight_kg);
+          });
+      } else {
+        setLoading(false);
+      }
     });
   }, []);
 
@@ -67,6 +79,14 @@ export default function WeightPage() {
         <h2 className="text-lg font-semibold text-slate-800">Body weight</h2>
         {latestWeight && (
           <p className="text-3xl font-bold text-slate-800">{latestWeight} <span className="text-base font-normal text-slate-400">kg</span></p>
+        )}
+        {latestWeight && goalWeight && goalWeight !== latestWeight && (
+          <p className="mt-1 text-sm text-slate-500">
+            Goal {goalWeight} kg ·{' '}
+            <span className="font-medium text-indigo-600">
+              {Math.abs(goalWeight - latestWeight).toFixed(1)} kg to {goalWeight > latestWeight ? 'gain' : 'lose'}
+            </span>
+          </p>
         )}
       </div>
 

@@ -3,6 +3,7 @@ export interface Profile {
   name: string | null;
   height_cm: number | null;
   current_weight_kg: number | null;
+  goal_weight_kg: number | null;
   age: number | null;
   birthdate: string | null;
   sex: string | null;
