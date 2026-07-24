@@ -54,10 +54,19 @@ Comidas que el usuario suele comer/cocinar: ${recentFoods || '(sin historial aú
     const result = JSON.parse(extractJson(text));
     const suggestions = Array.isArray(result.suggestions) ? result.suggestions.slice(0, 3) : [];
     return NextResponse.json({ suggestions });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Suggest meal error:', error);
     return NextResponse.json(
-      { error: 'Could not get suggestions. Please try again.' },
+      {
+        error: 'Could not get suggestions. Please try again.',
+        _debug: {
+          message: String(error?.message ?? error),
+          provider: process.env.AI_PROVIDER ?? null,
+          hasGemini: !!process.env.GEMINI_API_KEY,
+          geminiLen: (process.env.GEMINI_API_KEY ?? '').length,
+          model: getModel(),
+        },
+      },
       { status: 500 }
     );
   }
