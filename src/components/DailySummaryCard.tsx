@@ -8,6 +8,7 @@ interface DailySummaryCardProps {
   totalCarbs: number;
   totalFat: number;
   targetKcal: number | null;
+  proteinTarget: number | null;
 }
 
 export default function DailySummaryCard({
@@ -16,6 +17,7 @@ export default function DailySummaryCard({
   totalCarbs,
   totalFat,
   targetKcal,
+  proteinTarget,
 }: DailySummaryCardProps) {
   return (
     <MacroSummary
@@ -24,6 +26,7 @@ export default function DailySummaryCard({
       carbs={totalCarbs}
       fat={totalFat}
       targetKcal={targetKcal ?? undefined}
+      proteinTarget={proteinTarget ?? undefined}
       showTarget={!!targetKcal}
     />
   );

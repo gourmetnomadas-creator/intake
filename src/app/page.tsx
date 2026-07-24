@@ -82,6 +82,14 @@ export default function TodayDashboard() {
     manual_calorie_target: profile.manual_calorie_target,
   }) : null;
 
+  // Protein goal: 1.6 g/kg body weight (same target Pulso recommends).
+  // Fall back to 30% of the calorie target / 4 kcal-per-gram when no weight.
+  const proteinTarget = profile?.current_weight_kg
+    ? Math.round(profile.current_weight_kg * 1.6)
+    : targetKcal
+    ? Math.round((targetKcal * 0.3) / 4)
+    : null;
+
   const totals = {
     totalKcal: meals.reduce((sum, m) => sum + m.total_kcal, 0),
     totalProtein: meals.reduce((sum, m) => sum + m.total_protein_g, 0),
@@ -102,6 +110,7 @@ export default function TodayDashboard() {
       <DailySummaryCard
         {...totals}
         targetKcal={targetKcal}
+        proteinTarget={proteinTarget}
       />
 
       <div className="mt-6 space-y-4">
