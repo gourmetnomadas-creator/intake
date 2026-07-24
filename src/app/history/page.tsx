@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
 import { Meal } from '@/types';
 import { formatTime, getMealTypeLabel } from '@/lib/utils';
+import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
 import AppShell from '@/components/AppShell';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
@@ -23,6 +24,8 @@ export default function HistoryPage() {
   const [deleteTarget, setDeleteTarget] = useState<Meal | null>(null);
   const [session, setSession] = useState<any>(null);
   const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const [review, setReview] = useState<{ headline: string; insights: string[] } | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -166,6 +169,87 @@ export default function HistoryPage() {
     }
   };
 
+  const generateReview = async () => {
+    if (!session) return;
+    setReviewLoading(true);
+    setReview(null);
+    const supabase = createClient();
+    const userId = session.user.id;
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    const startKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    const last7 = meals.filter((m) => m.date >= startKey);
+    const loggedDays = new Set(last7.map((m) => m.date)).size || 1;
+    const sum = last7.reduce(
+      (a, m) => ({
+        kcal: a.kcal + m.total_kcal,
+        protein: a.protein + m.total_protein_g,
+        carbs: a.carbs + m.total_carbs_g,
+        fat: a.fat + m.total_fat_g,
+      }),
+      { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    const [{ data: profile }, { data: supps }, { data: logs }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('supplements').select('id, name').eq('user_id', userId),
+      supabase.from('supplement_logs').select('supplement_id, date').eq('user_id', userId).gte('date', startKey),
+    ]);
+
+    const targetKcal = profile
+      ? calculateDailyCalorieTarget({
+          weight_kg: profile.current_weight_kg,
+          height_cm: profile.height_cm,
+          age: ageFromBirthdate(profile.birthdate) ?? profile.age,
+          sex: profile.sex,
+          activity_level: profile.activity_level,
+          goal_type: profile.goal_type,
+          manual_calorie_target: profile.manual_calorie_target,
+        })
+      : null;
+    const proteinTarget = profile?.current_weight_kg
+      ? Math.round(profile.current_weight_kg * 1.6)
+      : targetKcal
+      ? Math.round((targetKcal * 0.3) / 4)
+      : null;
+
+    const supplementAdherence = (supps || []).map((s: { id: string; name: string }) => {
+      const taken = (logs || []).filter((l: { supplement_id: string }) => l.supplement_id === s.id).length;
+      return `${s.name}: ${taken}/7 días`;
+    });
+
+    const summary = {
+      diasRegistrados: loggedDays,
+      promedioDiario: {
+        calorias: Math.round(sum.kcal / loggedDays),
+        proteina_g: Math.round(sum.protein / loggedDays),
+        carbohidratos_g: Math.round(sum.carbs / loggedDays),
+        grasa_g: Math.round(sum.fat / loggedDays),
+      },
+      objetivos: { calorias: targetKcal, proteina_g: proteinTarget },
+      suplementos: supplementAdherence,
+    };
+
+    try {
+      const res = await fetch('/api/weekly-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(summary),
+      });
+      if (res.ok) {
+        setReview(await res.json());
+      } else {
+        alert('Could not generate the review. Please try again.');
+      }
+    } catch {
+      alert('Could not generate the review. Please try again.');
+    }
+    setReviewLoading(false);
+  };
+
   if (loading) return <AppShell><LoadingState /></AppShell>;
   if (!session) return null;
 
@@ -205,6 +289,42 @@ export default function HistoryPage() {
   return (
     <AppShell>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Meal history</h2>
+
+      {meals.length > 0 && (
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-700">🧠 Weekly review</p>
+            <button
+              onClick={generateReview}
+              disabled={reviewLoading}
+              className="rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+            >
+              {reviewLoading ? 'Analyzing…' : review ? 'Regenerate' : 'Generate'}
+            </button>
+          </div>
+          {!review && !reviewLoading && (
+            <p className="mt-2 text-xs text-slate-400">
+              AI looks at your last 7 days (calories, protein, supplements) and gives you a few
+              tips.
+            </p>
+          )}
+          {review && (
+            <div className="mt-3">
+              {review.headline && (
+                <p className="mb-2 text-sm font-medium text-slate-800">{review.headline}</p>
+              )}
+              <ul className="space-y-1.5">
+                {review.insights.map((tip, i) => (
+                  <li key={i} className="flex gap-2 text-xs text-slate-600">
+                    <span className="text-indigo-400">•</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {meals.length > 0 && (
         <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
