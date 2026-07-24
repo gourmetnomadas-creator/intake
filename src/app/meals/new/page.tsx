@@ -50,10 +50,14 @@ export default function AddMealPage() {
     setFormData(data);
 
     try {
+      // The AI only uses the text (description + weight); the photo is a
+      // local preview. Don't POST the multi-MB base64 image — it blows past
+      // the request-size limit and Safari throws a pattern-match error.
+      const { imageBase64, ...analyzePayload } = data;
       const res = await fetch('/api/analyze-meal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(analyzePayload),
       });
 
       if (!res.ok) {
