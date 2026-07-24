@@ -29,7 +29,9 @@ export async function getAIClient() {
 
 export function getModel(): string {
   if (AI_PROVIDER === 'openai' && OPENAI_API_KEY) return 'gpt-4o-mini';
-  if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) return 'gemini-flash-latest';
+  // flash-lite has a much higher free-tier quota; used for the lighter tasks
+  // (suggestions, supplement tips, weekly review). Meal analysis keeps flash.
+  if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) return 'gemini-flash-lite-latest';
   return 'deepseek-chat';
 }
 
