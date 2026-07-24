@@ -56,6 +56,12 @@ export default function TodayDashboard() {
       supabase.from('profiles').select('*').eq('id', userId).single(),
     ]);
 
+    // New users (no profile yet, or profile without a name) go through onboarding.
+    if (!profileRes.data || !profileRes.data.name) {
+      router.push('/onboarding');
+      return;
+    }
+
     if (mealsRes.data) setMeals(mealsRes.data);
     if (profileRes.data) setProfile(profileRes.data);
 
