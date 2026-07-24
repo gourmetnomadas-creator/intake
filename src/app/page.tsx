@@ -111,6 +111,14 @@ export default function TodayDashboard() {
     ? Math.round((targetKcal * 0.3) / 4)
     : null;
 
+  // Balanced macro-gram targets from the calorie goal: fat ~25% of kcal,
+  // carbs fill the rest after protein and fat.
+  const fatTarget = targetKcal ? Math.round((targetKcal * 0.25) / 9) : null;
+  const carbsTarget =
+    targetKcal && proteinTarget && fatTarget
+      ? Math.round(Math.max(0, targetKcal - proteinTarget * 4 - fatTarget * 9) / 4)
+      : null;
+
   const totals = {
     totalKcal: meals.reduce((sum, m) => sum + m.total_kcal, 0),
     totalProtein: meals.reduce((sum, m) => sum + m.total_protein_g, 0),
@@ -218,7 +226,14 @@ export default function TodayDashboard() {
           )}
         </div>
 
-        <MacrosCard protein={totals.totalProtein} carbs={totals.totalCarbs} fat={totals.totalFat} />
+        <MacrosCard
+          protein={totals.totalProtein}
+          carbs={totals.totalCarbs}
+          fat={totals.totalFat}
+          proteinTarget={proteinTarget}
+          carbsTarget={carbsTarget}
+          fatTarget={fatTarget}
+        />
 
         {trend.some((v) => v > 0) && <MiniTrend values={trend} />}
 
