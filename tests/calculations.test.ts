@@ -9,7 +9,24 @@ import {
   formatGrams,
   formatKcal,
 } from '../src/lib/calculations';
-import { mealItemSchema, totalGramsValidation } from '../src/lib/validations';
+import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
+
+describe('analyzeMealSchema', () => {
+  const base = {
+    description: 'chicken and rice',
+    totalWeightGrams: 300,
+    weightContext: 'whole_plate',
+    mealType: 'dinner',
+  };
+
+  it('accepts a meal with no photo (imageBase64 null)', () => {
+    expect(analyzeMealSchema.safeParse({ ...base, imageBase64: null }).success).toBe(true);
+  });
+
+  it('accepts a meal with a photo', () => {
+    expect(analyzeMealSchema.safeParse({ ...base, imageBase64: 'abc123' }).success).toBe(true);
+  });
+});
 
 describe('ageFromBirthdate', () => {
   it('returns null for missing or invalid dates', () => {

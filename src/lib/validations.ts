@@ -15,8 +15,8 @@ export const mealItemSchema = z.object({
 });
 
 export const analyzeMealSchema = z.object({
-  imageUrl: z.string().optional(),
-  imageBase64: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
+  imageBase64: z.string().nullable().optional(),
   description: z.string().min(1, 'Description is required'),
   totalWeightGrams: z.number().positive('Total weight in grams must be positive'),
   weightContext: weightContextSchema,
