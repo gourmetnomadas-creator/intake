@@ -39,6 +39,9 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
     return Math.round(bmr * mult + adj);
   })();
 
+  const weightNum = parseFloat(weightKg);
+  const proteinTarget = weightNum ? Math.round(weightNum * 1.6) : null;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -159,15 +162,51 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
         </div>
       )}
 
-      {calculatedTarget && goalType !== 'manual' && (
-        <div className="rounded-xl bg-indigo-50 p-4 text-center">
-          <p className="text-xs text-slate-500">Estimated maintenance</p>
-          <p className="text-2xl font-bold text-slate-800">{calculatedTarget} kcal</p>
-          <p className="mt-1 text-[10px] text-slate-400">
-            This is an estimate for personal tracking, not medical advice.
-          </p>
+      {(calculatedTarget || proteinTarget) && (
+        <div className="grid grid-cols-2 gap-3">
+          {calculatedTarget && goalType !== 'manual' && (
+            <div className="rounded-xl bg-indigo-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Daily calories</p>
+              <p className="text-2xl font-bold text-slate-800">{calculatedTarget}</p>
+              <p className="text-[10px] text-slate-400">kcal / day</p>
+            </div>
+          )}
+          {proteinTarget && (
+            <div className="rounded-xl bg-emerald-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Daily protein</p>
+              <p className="text-2xl font-bold text-slate-800">{proteinTarget}</p>
+              <p className="text-[10px] text-slate-400">g / day</p>
+            </div>
+          )}
         </div>
       )}
+
+      <details className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
+        <summary className="cursor-pointer font-medium text-slate-600">
+          How are these numbers calculated?
+        </summary>
+        <div className="mt-2 space-y-2 leading-relaxed">
+          <p>
+            <strong>Calories:</strong> Mifflin-St Jeor equation for your resting
+            metabolism (from weight, height, age and sex), multiplied by an activity
+            factor (1.2 sedentary → 1.9 very active), then ±250 kcal for a mild
+            deficit/surplus. It&apos;s the most widely used clinical estimate.
+          </p>
+          <p>
+            <strong>Protein:</strong> 1.6 g per kg of body weight — the general
+            target for maintaining and building muscle in active people.
+          </p>
+          <p>
+            <strong>Per-meal calories &amp; macros:</strong> estimated by AI from your
+            text description and weight, using standard nutrition values per 100 g.
+            You review and correct them before saving.
+          </p>
+          <p className="text-[10px] text-slate-400">
+            These are estimates for personal tracking, not medical advice. Consult a
+            professional for a plan tailored to you.
+          </p>
+        </div>
+      </details>
 
       <button
         type="submit"
