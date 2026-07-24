@@ -20,6 +20,16 @@ export default function SupplementsPage() {
   const [session, setSession] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supplement | null>(null);
 
+  // inline edit state
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    name: string;
+    dose: string;
+    timeOfDay: TimeOfDay;
+    withFood: boolean;
+    tip: string;
+  }>({ name: '', dose: '', timeOfDay: 'morning', withFood: false, tip: '' });
+
   // add form state
   const [name, setName] = useState('');
   const [dose, setDose] = useState('');
@@ -98,6 +108,36 @@ export default function SupplementsPage() {
     setDose('');
     setDraft(null);
     setSaving(false);
+  };
+
+  const startEdit = (s: Supplement) => {
+    setEditId(s.id);
+    setEditDraft({
+      name: s.name,
+      dose: s.dose || '',
+      timeOfDay: s.time_of_day,
+      withFood: s.with_food,
+      tip: s.tip || '',
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editId || !editDraft.name.trim()) return;
+    const supabase = createClient();
+    const patch = {
+      name: editDraft.name.trim(),
+      dose: editDraft.dose.trim() || null,
+      time_of_day: editDraft.timeOfDay,
+      with_food: editDraft.withFood,
+      tip: editDraft.tip.trim() || null,
+    };
+    const { error } = await supabase.from('supplements').update(patch).eq('id', editId);
+    if (error) {
+      alert('Could not save changes. Please try again.');
+      return;
+    }
+    setSupplements((prev) => prev.map((s) => (s.id === editId ? { ...s, ...patch } : s)));
+    setEditId(null);
   };
 
   const handleDelete = async () => {
@@ -191,30 +231,100 @@ export default function SupplementsPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          {supplements.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between rounded-2xl bg-white p-3 shadow-sm"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-slate-800">
-                  {s.name}
-                  {s.dose && <span className="ml-1.5 text-xs font-normal text-slate-400">{s.dose}</span>}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {timeOfDayLabels[s.time_of_day]}
-                  {s.with_food && ' · with food'}
-                </p>
-                {s.tip && <p className="mt-0.5 text-[11px] text-slate-400">💡 {s.tip}</p>}
+          {supplements.map((s) =>
+            editId === s.id ? (
+              <div key={s.id} className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={editDraft.name}
+                    onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                    placeholder="Name"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  />
+                  <input
+                    type="text"
+                    value={editDraft.dose}
+                    onChange={(e) => setEditDraft({ ...editDraft, dose: e.target.value })}
+                    placeholder="Dose"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={editDraft.timeOfDay}
+                    onChange={(e) => setEditDraft({ ...editDraft, timeOfDay: e.target.value as TimeOfDay })}
+                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  >
+                    {Object.entries(timeOfDayLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={editDraft.withFood}
+                      onChange={(e) => setEditDraft({ ...editDraft, withFood: e.target.checked })}
+                      className="h-4 w-4 accent-indigo-500"
+                    />
+                    With food
+                  </label>
+                </div>
+                <textarea
+                  value={editDraft.tip}
+                  onChange={(e) => setEditDraft({ ...editDraft, tip: e.target.value })}
+                  placeholder="Tip (optional)"
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditId(null)}
+                    className="flex-1 rounded-full border border-slate-300 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEditSave}
+                    className="flex-1 rounded-full bg-indigo-500 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setDeleteTarget(s)}
-                className="ml-2 rounded-lg px-2 py-1 text-xs text-red-400 hover:text-red-600"
+            ) : (
+              <div
+                key={s.id}
+                className="flex items-center justify-between rounded-2xl bg-white p-3 shadow-sm"
               >
-                ✕
-              </button>
-            </div>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-800">
+                    {s.name}
+                    {s.dose && <span className="ml-1.5 text-xs font-normal text-slate-400">{s.dose}</span>}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {timeOfDayLabels[s.time_of_day]}
+                    {s.with_food && ' · with food'}
+                  </p>
+                  {s.tip && <p className="mt-0.5 text-[11px] text-slate-400">💡 {s.tip}</p>}
+                </div>
+                <div className="ml-2 flex flex-shrink-0 gap-1">
+                  <button
+                    onClick={() => startEdit(s)}
+                    className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:text-slate-600"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(s)}
+                    className="rounded-lg px-2 py-1 text-xs text-red-400 hover:text-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )
+          )}
         </div>
       )}
 
