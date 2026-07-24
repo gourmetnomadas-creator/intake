@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
@@ -13,7 +13,17 @@ import { AIAnalysisResult, AIAnalysisItem, MealType, WeightContext } from '@/typ
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 export default function AddMealPage() {
+  return (
+    <Suspense fallback={null}>
+      <AddMealInner />
+    </Suspense>
+  );
+}
+
+function AddMealInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillDescription = searchParams.get('description') || '';
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -154,7 +164,7 @@ export default function AddMealPage() {
       </h2>
 
       {!analysis ? (
-        <MealForm onSubmit={handleAnalyze} loading={loading} />
+        <MealForm onSubmit={handleAnalyze} loading={loading} initialDescription={prefillDescription} />
       ) : (
         <div className="space-y-5">
           <MealReviewTable

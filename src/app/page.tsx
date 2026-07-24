@@ -8,6 +8,7 @@ import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculation
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
 import DailySummaryCard from '@/components/DailySummaryCard';
+import SuggestMealCard from '@/components/SuggestMealCard';
 import SupplementsCard from '@/components/SupplementsCard';
 import MealCard from '@/components/MealCard';
 import EmptyState from '@/components/EmptyState';
@@ -105,6 +106,16 @@ export default function TodayDashboard() {
         targetKcal={targetKcal}
         proteinTarget={proteinTarget}
       />
+
+      {session && (
+        <SuggestMealCard
+          userId={session.user.id}
+          remainingKcal={targetKcal !== null ? targetKcal - totals.totalKcal : null}
+          remainingProtein={proteinTarget !== null ? proteinTarget - totals.totalProtein : null}
+          dietType={profile?.diet_type ?? null}
+          restrictions={profile?.dietary_restrictions ?? null}
+        />
+      )}
 
       <div className="mt-6 space-y-2">
         {meals.map((meal) => (

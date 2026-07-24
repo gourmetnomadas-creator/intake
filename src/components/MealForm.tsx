@@ -14,12 +14,13 @@ interface MealFormProps {
     imageBase64: string | null;
   }) => void;
   loading: boolean;
+  initialDescription?: string;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
 
-export default function MealForm({ onSubmit, loading }: MealFormProps) {
-  const [description, setDescription] = useState('');
+export default function MealForm({ onSubmit, loading, initialDescription = '' }: MealFormProps) {
+  const [description, setDescription] = useState(initialDescription);
   const [mealType, setMealType] = useState<MealType>('lunch');
   const [date, setDate] = useState(today());
   const [totalWeightGrams, setTotalWeightGrams] = useState('');
