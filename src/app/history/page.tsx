@@ -260,7 +260,7 @@ export default function HistoryPage() {
       day: 'numeric',
     });
 
-  // Group the (already newest-first) meals by their date, with per-day totals.
+  // Group meals by their calendar date, with per-day totals.
   const dayGroups: { date: string; meals: Meal[]; kcal: number; protein: number }[] = [];
   const dayIndex = new Map<string, number>();
   for (const m of filteredMeals) {
@@ -272,6 +272,12 @@ export default function HistoryPage() {
     g.meals.push(m);
     g.kcal += m.total_kcal;
     g.protein += m.total_protein_g;
+  }
+  // Newest day first, regardless of when each meal was logged...
+  dayGroups.sort((a, b) => b.date.localeCompare(a.date));
+  // ...and chronological (earliest first) within each day.
+  for (const g of dayGroups) {
+    g.meals.sort((a, b) => a.meal_time.localeCompare(b.meal_time));
   }
 
   // Last 14 calendar days of total calories, for the overview chart.
