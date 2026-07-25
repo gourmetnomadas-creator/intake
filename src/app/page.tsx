@@ -8,6 +8,7 @@ import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculation
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
 import DailySummaryCard from '@/components/DailySummaryCard';
+import CelebrationModal from '@/components/CelebrationModal';
 import SuggestMealCard from '@/components/SuggestMealCard';
 import MacrosCard from '@/components/MacrosCard';
 import SupplementsCard from '@/components/SupplementsCard';
@@ -25,6 +26,7 @@ export default function TodayDashboard() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Meal | null>(null);
   const [session, setSession] = useState<any>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     getUserSession().then((session) => {
@@ -67,6 +69,28 @@ export default function TodayDashboard() {
 
     setLoading(false);
   };
+
+  // Celebrate the first time the calorie goal is reached each day.
+  useEffect(() => {
+    if (loading || !profile) return;
+    const target = calculateDailyCalorieTarget({
+      weight_kg: profile.current_weight_kg,
+      height_cm: profile.height_cm,
+      age: ageFromBirthdate(profile.birthdate) ?? profile.age,
+      sex: profile.sex,
+      activity_level: profile.activity_level,
+      goal_type: profile.goal_type,
+      manual_calorie_target: profile.manual_calorie_target,
+    });
+    const total = meals.reduce((s, m) => s + m.total_kcal, 0);
+    if (target && total >= target && typeof window !== 'undefined') {
+      const key = `intake-celebrated-${new Date().toISOString().slice(0, 10)}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, '1');
+        setShowCelebration(true);
+      }
+    }
+  }, [loading, meals, profile]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -229,6 +253,10 @@ export default function TodayDashboard() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {showCelebration && targetKcal && (
+        <CelebrationModal targetKcal={targetKcal} onClose={() => setShowCelebration(false)} />
+      )}
     </AppShell>
   );
 }
