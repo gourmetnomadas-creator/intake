@@ -15,6 +15,8 @@ const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentWeight, setCurrentWeight] = useState<number | null>(null);
+  const [weightTrend, setWeightTrend] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -70,15 +72,24 @@ export default function ProfilePage() {
         return;
       }
       if (s) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', s.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) setProfile(data);
-            setLoading(false);
-          });
+        Promise.all([
+          supabase.from('profiles').select('*').eq('id', s.user.id).single(),
+          supabase
+            .from('body_weight_logs')
+            .select('weight_kg, date')
+            .eq('user_id', s.user.id)
+            .order('date', { ascending: false })
+            .limit(2),
+        ]).then(([profRes, logsRes]) => {
+          if (profRes.data) setProfile(profRes.data);
+          const logs = logsRes.data ?? [];
+          const latest = logs[0]?.weight_kg ?? profRes.data?.current_weight_kg ?? null;
+          setCurrentWeight(latest);
+          if (logs.length >= 2) {
+            setWeightTrend(Math.round((logs[0].weight_kg - logs[1].weight_kg) * 10) / 10);
+          }
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
@@ -109,12 +120,19 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <h2 className="mb-4 text-lg font-semibold text-slate-800">Profile</h2>
-      <ProfileForm profile={profile} onSave={handleSave} saving={saving} />
+      <h2 className="mb-4 text-2xl font-bold text-slate-900">Profile</h2>
+      <ProfileForm
+        profile={profile}
+        currentWeight={currentWeight}
+        weightTrend={weightTrend}
+        onLogWeight={() => router.push('/weight')}
+        onSave={handleSave}
+        saving={saving}
+      />
       <div className="mt-6">
         <button
           onClick={() => router.push('/weight')}
-          className="w-full rounded-xl border border-slate-200 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          className="w-full rounded-2xl border border-slate-200 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
           Log body weight
         </button>

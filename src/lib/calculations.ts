@@ -78,9 +78,11 @@ export function getActivityMultiplier(activityLevel: string): number {
 
 export function getGoalAdjustment(goalType: string): number {
   const adjustments: Record<string, number> = {
-    maintain: 0,
+    lose: -500,
     mild_deficit: -250,
+    maintain: 0,
     mild_surplus: 250,
+    gain: 500,
     manual: 0,
   };
   return adjustments[goalType] ?? 0;

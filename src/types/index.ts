@@ -132,4 +132,4 @@ export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type WeightContext = 'whole_plate' | 'one_ingredient' | 'separate_ingredients';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-export type GoalType = 'maintain' | 'mild_deficit' | 'mild_surplus' | 'manual';
+export type GoalType = 'lose' | 'mild_deficit' | 'maintain' | 'mild_surplus' | 'gain' | 'manual';

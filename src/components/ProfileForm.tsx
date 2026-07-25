@@ -6,14 +6,23 @@ import { ageFromBirthdate, calculateBMR, getActivityMultiplier, getGoalAdjustmen
 
 interface ProfileFormProps {
   profile: Profile | null;
+  currentWeight: number | null;
+  weightTrend: number | null;
+  onLogWeight: () => void;
   onSave: (data: Partial<Profile>) => void;
   saving: boolean;
 }
 
-export default function ProfileForm({ profile, onSave, saving }: ProfileFormProps) {
+export default function ProfileForm({
+  profile,
+  currentWeight,
+  weightTrend,
+  onLogWeight,
+  onSave,
+  saving,
+}: ProfileFormProps) {
   const [name, setName] = useState(profile?.name || '');
   const [heightCm, setHeightCm] = useState(profile?.height_cm?.toString() || '');
-  const [weightKg, setWeightKg] = useState(profile?.current_weight_kg?.toString() || '');
   const [goalWeightKg, setGoalWeightKg] = useState(profile?.goal_weight_kg?.toString() || '');
   const [birthdate, setBirthdate] = useState(profile?.birthdate || '');
   const [sex, setSex] = useState(profile?.sex || '');
@@ -23,41 +32,39 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
   const [goalType, setGoalType] = useState<GoalType>(
     (profile?.goal_type as GoalType) || 'maintain'
   );
-  const [manualTarget, setManualTarget] = useState(
-    profile?.manual_calorie_target?.toString() || ''
-  );
   const [dietType, setDietType] = useState(profile?.diet_type || '');
   const [dietaryRestrictions, setDietaryRestrictions] = useState(profile?.dietary_restrictions || '');
 
   const derivedAge = ageFromBirthdate(birthdate) ?? profile?.age ?? null;
+  const weightNum = currentWeight ?? 0;
 
   const calculatedTarget = (() => {
-    const w = parseFloat(weightKg);
     const h = parseFloat(heightCm);
     const a = derivedAge;
-    if (!w || !h || !a || !sex) return null;
-    const bmr = calculateBMR(w, h, a, sex);
+    if (!weightNum || !h || !a || !sex) return null;
+    const bmr = calculateBMR(weightNum, h, a, sex);
     const mult = getActivityMultiplier(activityLevel);
     const adj = getGoalAdjustment(goalType);
     return Math.round(bmr * mult + adj);
   })();
 
-  const weightNum = parseFloat(weightKg);
   const proteinTarget = weightNum ? Math.round(weightNum * 1.6) : null;
+  const trendLabel =
+    weightTrend == null || weightTrend === 0
+      ? ''
+      : `${weightTrend > 0 ? '▲' : '▼'}${Math.abs(weightTrend).toFixed(1)} kg`;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       name: name || null,
       height_cm: parseFloat(heightCm) || null,
-      current_weight_kg: parseFloat(weightKg) || null,
       goal_weight_kg: parseFloat(goalWeightKg) || null,
       birthdate: birthdate || null,
       age: derivedAge,
       sex: sex || null,
       activity_level: activityLevel,
       goal_type: goalType,
-      manual_calorie_target: goalType === 'manual' ? parseInt(manualTarget) || null : null,
       calculated_calorie_target: calculatedTarget,
       diet_type: dietType || null,
       dietary_restrictions: dietaryRestrictions.trim() || null,
@@ -88,13 +95,20 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Weight (kg)</label>
-          <input
-            type="number"
-            value={weightKg}
-            onChange={(e) => setWeightKg(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          />
+          <label className="mb-1 block text-sm font-medium text-slate-700">Current weight</label>
+          <button
+            type="button"
+            onClick={onLogWeight}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left"
+          >
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm font-semibold text-slate-900">
+                {currentWeight != null ? `${currentWeight} kg` : 'Log weight'}
+              </span>
+              {trendLabel && <span className="text-xs text-slate-400">{trendLabel}</span>}
+            </span>
+            <span className="text-slate-300">›</span>
+          </button>
         </div>
       </div>
 
@@ -147,10 +161,11 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           onChange={(e) => setGoalType(e.target.value as GoalType)}
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
         >
-          <option value="maintain">Maintain weight</option>
+          <option value="lose">Lose weight</option>
           <option value="mild_deficit">Mild deficit</option>
+          <option value="maintain">Maintain weight</option>
           <option value="mild_surplus">Mild surplus</option>
-          <option value="manual">Manual target</option>
+          <option value="gain">Gain weight</option>
         </select>
       </div>
 
@@ -173,20 +188,6 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           </p>
         )}
       </div>
-
-      {goalType === 'manual' && (
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Daily calorie target
-          </label>
-          <input
-            type="number"
-            value={manualTarget}
-            onChange={(e) => setManualTarget(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          />
-        </div>
-      )}
 
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <p className="mb-3 text-sm font-semibold text-slate-700">Dietary preferences</p>
@@ -224,7 +225,7 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
 
       {(calculatedTarget || proteinTarget) && (
         <div className="grid grid-cols-2 gap-3">
-          {calculatedTarget && goalType !== 'manual' && (
+          {calculatedTarget && (
             <div className="rounded-xl bg-indigo-50 p-4 text-center">
               <p className="text-xs text-slate-500">Daily calories</p>
               <p className="text-2xl font-bold text-slate-800">{calculatedTarget}</p>
@@ -249,8 +250,9 @@ export default function ProfileForm({ profile, onSave, saving }: ProfileFormProp
           <p>
             <strong>Calories:</strong> Mifflin-St Jeor equation for your resting
             metabolism (from weight, height, age and sex), multiplied by an activity
-            factor (1.2 sedentary → 1.9 very active), then ±250 kcal for a mild
-            deficit/surplus. It&apos;s the most widely used clinical estimate.
+            factor (1.2 sedentary → 1.9 very active), then adjusted for your goal
+            (±250 kcal for a mild deficit/surplus, ±500 to lose/gain). It&apos;s the
+            most widely used clinical estimate.
           </p>
           <p>
             <strong>Protein:</strong> 1.6 g per kg of body weight — the general
