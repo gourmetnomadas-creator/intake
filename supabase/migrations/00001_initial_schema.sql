@@ -1,4 +1,4 @@
--- Plate Log initial schema
+-- Intake initial schema
 -- Run this in Supabase SQL editor
 
 -- 1. Profiles

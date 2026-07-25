@@ -1,6 +1,6 @@
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 const DEV_USER_ID = 'dev-user-id';
-const STORAGE_PREFIX = 'plate-log-dev-';
+const STORAGE_PREFIX = 'intake-dev-';
 
 export function isDevMode(): boolean {
   return DEV_MODE;

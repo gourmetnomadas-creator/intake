@@ -54,7 +54,7 @@ export default function ProfilePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plate-log-${new Date().toISOString().split('T')[0]}.md`;
+    a.download = `intake-${new Date().toISOString().split('T')[0]}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();

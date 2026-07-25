@@ -1,6 +1,6 @@
-# Plate Log
+# Intake
 
-A personal food photo calorie tracker PWA.
+A personal, AI-assisted nutrition-tracking PWA (formerly "Plate Log").
 
 The app helps you track daily calories and macros by photographing meals, entering the weight in grams, describing the food, and reviewing AI-suggested ingredient breakdowns before saving.
 
