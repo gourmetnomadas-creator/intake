@@ -292,6 +292,11 @@ export default function HistoryPage() {
   });
   const maxKcal = Math.max(1, ...chartDays.map((d) => d.kcal));
 
+  // The weekly review needs a real week of data, or it averages over days with
+  // no meals. Unlock once there are 7 distinct days with logged meals.
+  const loggedDaysTotal = new Set(meals.map((m) => m.date)).size;
+  const reviewReady = loggedDaysTotal >= 7;
+
   return (
     <AppShell>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Meal history</h2>
@@ -302,17 +307,23 @@ export default function HistoryPage() {
             <p className="text-sm font-semibold text-slate-700">🧠 Weekly review</p>
             <button
               onClick={generateReview}
-              disabled={reviewLoading}
+              disabled={reviewLoading || !reviewReady}
               className="rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
             >
               {reviewLoading ? 'Analyzing…' : review ? 'Regenerate' : 'Generate'}
             </button>
           </div>
           {!review && !reviewLoading && (
-            <p className="mt-2 text-xs text-slate-400">
-              AI looks at your last 7 days (calories, protein, supplements) and gives you a few
-              tips.
-            </p>
+            reviewReady ? (
+              <p className="mt-2 text-xs text-slate-400">
+                AI looks at your last 7 days (calories, protein, supplements) and gives you a few
+                tips.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-slate-400">
+                Unlocks after 7 days of logged meals — keep going ({loggedDaysTotal}/7 days so far).
+              </p>
+            )
           )}
           {review && (
             <div className="mt-3">
