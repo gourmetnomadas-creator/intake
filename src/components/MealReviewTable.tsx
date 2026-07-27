@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { AIAnalysisItem } from '@/types';
 import IngredientRow from './IngredientRow';
-import { calculateItemNutrition, calculateMealTotals } from '@/lib/calculations';
+import { calculateMealTotals } from '@/lib/calculations';
 
 interface MealReviewTableProps {
   items: AIAnalysisItem[];
@@ -17,6 +18,9 @@ export default function MealReviewTable({
   confidence,
   onItemsChange,
 }: MealReviewTableProps) {
+  const [addName, setAddName] = useState('');
+  const [adding, setAdding] = useState(false);
+
   const totals = calculateMealTotals(
     items.map((i) => ({
       grams: i.grams,
@@ -38,21 +42,37 @@ export default function MealReviewTable({
     onItemsChange(updated);
   };
 
-  const handleAdd = () => {
-    const updated = [
+  const handleAddByName = async () => {
+    const name = addName.trim();
+    if (!name || adding) return;
+    setAdding(true);
+    let macros = { kcalPer100g: 0, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 0 };
+    try {
+      const res = await fetch('/api/food-nutrition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        macros = {
+          kcalPer100g: data.kcalPer100g ?? 0,
+          proteinPer100g: data.proteinPer100g ?? 0,
+          carbsPer100g: data.carbsPer100g ?? 0,
+          fatPer100g: data.fatPer100g ?? 0,
+        };
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } catch {
+      // fall through: add with zeros so the user can fill it in manually
+    }
+    onItemsChange([
       ...items,
-      {
-        foodName: 'new ingredient',
-        grams: 50,
-        kcalPer100g: 100,
-        proteinPer100g: 5,
-        carbsPer100g: 10,
-        fatPer100g: 3,
-        source: 'manual',
-        confidence: 1,
-      },
-    ];
-    onItemsChange(updated);
+      { foodName: name, grams: 100, ...macros, source: 'manual', confidence: 1 },
+    ]);
+    setAddName('');
+    setAdding(false);
   };
 
   return (
@@ -89,13 +109,32 @@ export default function MealReviewTable({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={handleAdd}
-        className="w-full rounded-lg border-2 border-dashed border-slate-300 py-2 text-sm text-slate-500 transition hover:border-slate-400 hover:text-slate-600"
-      >
-        + Add ingredient manually
-      </button>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={addName}
+          onChange={(e) => setAddName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddByName();
+            }
+          }}
+          placeholder="Add ingredient (e.g. maple syrup)"
+          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+        />
+        <button
+          type="button"
+          onClick={handleAddByName}
+          disabled={adding || !addName.trim()}
+          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+        >
+          {adding ? '…' : 'Add'}
+        </button>
+      </div>
+      <p className="-mt-2 text-[11px] text-slate-400">
+        AI fills in the nutrition — review the grams and amounts after.
+      </p>
 
       <div className="rounded-2xl bg-indigo-50 p-4 shadow-sm">
         <h4 className="mb-2 text-sm font-semibold text-slate-700">Totals</h4>
