@@ -9,8 +9,8 @@ interface MealFormProps {
     description: string;
     mealType: MealType;
     date: string;
-    totalWeightGrams: number;
-    weightContext: WeightContext;
+    totalWeightGrams: number | null;
+    weightContext: WeightContext | null;
     imageBase64: string | null;
   }) => void;
   loading: boolean;
@@ -37,17 +37,13 @@ export default function MealForm({ onSubmit, loading, initialDescription = '' }:
       setError('Please enter a meal description.');
       return;
     }
-    if (!weight || weight <= 0) {
-      setError('Please enter the meal weight in grams.');
-      return;
-    }
 
     onSubmit({
       description: description.trim(),
       mealType,
       date,
-      totalWeightGrams: weight,
-      weightContext,
+      totalWeightGrams: weight > 0 ? weight : null,
+      weightContext: weight > 0 ? weightContext : null,
       imageBase64,
     });
   };
@@ -111,19 +107,25 @@ export default function MealForm({ onSubmit, loading, initialDescription = '' }:
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          Total weight in grams
+          Total weight in grams <span className="font-normal text-slate-400">(optional)</span>
         </label>
         <input
           type="number"
           value={totalWeightGrams}
           onChange={(e) => setTotalWeightGrams(e.target.value)}
-          placeholder="e.g. 200"
+          placeholder="e.g. 200 — leave blank to estimate by portion"
           min="1"
           step="1"
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
         />
+        {!(parseFloat(totalWeightGrams) > 0) && (
+          <p className="mt-1 text-xs text-slate-400">
+            No scale? Describe the portion (e.g. &quot;a glass of wine&quot;) and the AI estimates it.
+          </p>
+        )}
       </div>
 
+      {parseFloat(totalWeightGrams) > 0 && (
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
           What does the weight refer to?
@@ -157,6 +159,7 @@ export default function MealForm({ onSubmit, loading, initialDescription = '' }:
           ))}
         </div>
       </div>
+      )}
 
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>

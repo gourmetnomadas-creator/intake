@@ -33,8 +33,8 @@ function AddMealInner() {
     description: string;
     mealType: MealType;
     date: string;
-    totalWeightGrams: number;
-    weightContext: WeightContext;
+    totalWeightGrams: number | null;
+    weightContext: WeightContext | null;
     imageBase64: string | null;
   } | null>(null);
 
@@ -52,8 +52,8 @@ function AddMealInner() {
     description: string;
     mealType: MealType;
     date: string;
-    totalWeightGrams: number;
-    weightContext: WeightContext;
+    totalWeightGrams: number | null;
+    weightContext: WeightContext | null;
     imageBase64: string | null;
   }) => {
     setLoading(true);

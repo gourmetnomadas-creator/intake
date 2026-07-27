@@ -23,9 +23,13 @@ Analyze the meal description and return a JSON array of detected food items.
 
 Rules:
 - Be conservative with estimates.
-- If weight context is "whole_plate", the sum of ingredient grams must equal ${totalWeightGrams}g.
+${
+  totalWeightGrams
+    ? `- If weight context is "whole_plate", the sum of ingredient grams must equal ${totalWeightGrams}g.
 - If weight context is "one_ingredient", only the main ingredient gets ${totalWeightGrams}g; estimate others separately.
-- If weight context is "separate_ingredients", distribute ${totalWeightGrams}g according to the description proportions.
+- If weight context is "separate_ingredients", distribute ${totalWeightGrams}g according to the description proportions.`
+    : `- No total weight was given. Estimate each item's grams from the description using common serving sizes (e.g. "a glass of wine" ≈ 150 ml/150 g, "a coffee with milk" ≈ 200 g, "a slice of pizza" ≈ 120 g, "1 banana" ≈ 120 g). Keep confidence realistic since portions are estimated.`
+}
 - Use standard nutrition data per 100g for each food.
 - Mark confidence low (0.4-0.6) if unsure, medium (0.6-0.8) if reasonable, high (0.8-1.0) for obvious items.
 - Source should always be "estimated".
@@ -53,9 +57,12 @@ Return ONLY valid JSON in this exact format:
   "warnings": ["string"]
 }`;
 
-    const userMessage = `Description: "${description}"
+    const userMessage = totalWeightGrams
+      ? `Description: "${description}"
 Total weight: ${totalWeightGrams}g
-Weight context: ${weightContext.replace('_', ' ')}`;
+Weight context: ${(weightContext ?? 'whole_plate').replace('_', ' ')}`
+      : `Description: "${description}"
+No total weight provided — estimate portions from the description.`;
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
