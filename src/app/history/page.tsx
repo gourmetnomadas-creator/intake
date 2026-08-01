@@ -11,6 +11,7 @@ import AppShell from '@/components/AppShell';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
+import SupplementsCard from '@/components/SupplementsCard';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
@@ -459,6 +460,11 @@ export default function HistoryPage() {
                   </div>
                 ))}
               </div>
+              {session && (
+                <div className="mt-3">
+                  <SupplementsCard userId={session.user.id} date={group.date} compact />
+                </div>
+              )}
             </div>
           ))}
         </div>
