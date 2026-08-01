@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
-import { Profile } from '@/types';
+import { Profile, Meal } from '@/types';
 import AppShell from '@/components/AppShell';
-import ProfileForm from '@/components/ProfileForm';
+import ProfileCard from '@/components/ProfileCard';
 import LoadingState from '@/components/LoadingState';
 import { buildMarkdownReport } from '@/lib/export-report';
 
@@ -17,8 +17,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [weightTrend, setWeightTrend] = useState<number | null>(null);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -66,6 +66,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const supabase = createClient();
+    const today = new Date().toISOString().split('T')[0];
     getUserSession().then((s) => {
       if (!s && !DEV_MODE) {
         router.push('/auth');
@@ -80,7 +81,13 @@ export default function ProfilePage() {
             .eq('user_id', s.user.id)
             .order('date', { ascending: false })
             .limit(2),
-        ]).then(([profRes, logsRes]) => {
+          supabase
+            .from('meals')
+            .select('*, items:meal_items(*)')
+            .eq('user_id', s.user.id)
+            .eq('date', today)
+            .eq('status', 'saved'),
+        ]).then(([profRes, logsRes, mealsRes]) => {
           if (profRes.data) setProfile(profRes.data);
           const logs = logsRes.data ?? [];
           const latest = logs[0]?.weight_kg ?? profRes.data?.current_weight_kg ?? null;
@@ -88,6 +95,7 @@ export default function ProfilePage() {
           if (logs.length >= 2) {
             setWeightTrend(Math.round((logs[0].weight_kg - logs[1].weight_kg) * 10) / 10);
           }
+          setMeals(mealsRes.data ?? []);
           setLoading(false);
         });
       } else {
@@ -96,81 +104,24 @@ export default function ProfilePage() {
     });
   }, []);
 
-  const handleSave = async (data: Partial<Profile>) => {
-    setSaving(true);
-    const supabase = createClient();
-    const s = await getUserSession();
-    if (!s) return;
-
-    const { error } = await supabase.from('profiles').upsert({
-      id: s.user.id,
-      ...data,
-      updated_at: new Date().toISOString(),
-    });
-
-    if (error) {
-      alert(`Could not save profile: ${error.message}`);
-    } else {
-      setProfile((prev) => prev ? { ...prev, ...data } : null);
-    }
-    setSaving(false);
-  };
-
   if (loading) return <AppShell><LoadingState /></AppShell>;
 
   return (
     <AppShell>
-      <h2 className="mb-4 text-2xl font-bold text-slate-900">Profile</h2>
-      <ProfileForm
+      <ProfileCard
         profile={profile}
         currentWeight={currentWeight}
         weightTrend={weightTrend}
-        onLogWeight={() => router.push('/weight')}
-        onSave={handleSave}
-        saving={saving}
+        meals={meals}
+        onExport={handleExport}
+        onSignOut={async () => {
+          const supabase = createClient();
+          await supabase.auth.signOut();
+          router.push('/auth');
+        }}
+        onEditProfile={() => router.push('/weight')}
+        onEditPreferences={() => router.push('/')}
       />
-      <div className="mt-6">
-        <button
-          onClick={() => router.push('/weight')}
-          className="w-full rounded-2xl border border-slate-200 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          Log body weight
-        </button>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-        <p className="text-sm font-semibold text-slate-700">📄 Export data</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Downloads a Markdown file with your whole history (profile, meals, weight,
-          supplements). Paste it into Claude or any AI to analyze your habits.
-        </p>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="mt-3 w-full rounded-full bg-indigo-500 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
-        >
-          {exporting ? 'Preparing…' : 'Export Markdown report'}
-        </button>
-      </div>
-      {!DEV_MODE && (
-        <div className="mt-4">
-          <button
-            onClick={async () => {
-              const supabase = createClient();
-              await supabase.auth.signOut();
-              router.push('/auth');
-            }}
-            className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-red-500 transition hover:bg-red-50"
-          >
-            Sign out
-          </button>
-        </div>
-      )}
-      {DEV_MODE && (
-        <div className="mt-4 rounded-xl bg-indigo-50 p-3 text-center text-xs text-indigo-600">
-          Dev mode — auth bypassed
-        </div>
-      )}
     </AppShell>
   );
 }
