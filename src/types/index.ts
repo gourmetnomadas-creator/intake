@@ -129,7 +129,7 @@ export interface SupplementLog {
 }
 
 export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night';
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealType = 'breakfast' | 'snack' | 'lunch' | 'dinner' | 'dessert';
 export type WeightContext = 'whole_plate' | 'one_ingredient' | 'separate_ingredients';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 export type GoalType = 'lose' | 'mild_deficit' | 'maintain' | 'mild_surplus' | 'gain' | 'manual';

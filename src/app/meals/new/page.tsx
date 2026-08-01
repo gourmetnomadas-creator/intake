@@ -29,6 +29,7 @@ function AddMealInner() {
   const [saving, setSaving] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [editableItems, setEditableItems] = useState<AIAnalysisItem[]>([]);
+  const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [formData, setFormData] = useState<{
     description: string;
     mealType: MealType;
@@ -37,6 +38,8 @@ function AddMealInner() {
     weightContext: WeightContext | null;
     imageBase64: string | null;
   } | null>(null);
+
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     getUserSession().then((s) => {
@@ -47,6 +50,24 @@ function AddMealInner() {
       setSession(s);
     });
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchTodayMeals = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('meals')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today)
+        .order('meal_time', { ascending: true });
+
+      setTodayMeals(data || []);
+    };
+
+    fetchTodayMeals();
+  }, [session?.user?.id]);
 
   const handleAnalyze = async (data: {
     description: string;
@@ -164,7 +185,7 @@ function AddMealInner() {
       </h2>
 
       {!analysis ? (
-        <MealForm onSubmit={handleAnalyze} loading={loading} initialDescription={prefillDescription} />
+        <MealForm onSubmit={handleAnalyze} loading={loading} initialDescription={prefillDescription} todayMeals={todayMeals} />
       ) : (
         <div className="space-y-5">
           <MealReviewTable
