@@ -9,7 +9,7 @@ import AppShell from '@/components/AppShell';
 import WeightRuler from '@/components/WeightRuler';
 import LoadingState from '@/components/LoadingState';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 function shortDate(iso: string) {
   const [, m, d] = iso.split('-');

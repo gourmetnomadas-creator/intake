@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
+import { requireUser } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const unauth = await requireUser();
+    if (unauth) return unauth;
+
     const { name } = await request.json();
     if (!name || typeof name !== 'string' || name.length > 100) {
       return NextResponse.json({ error: 'Invalid supplement name' }, { status: 400 });

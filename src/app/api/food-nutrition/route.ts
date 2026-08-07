@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
 import { searchLocalFoods } from '@/lib/food-database';
+import { requireUser } from '@/lib/api-auth';
 
 // Nutrition per 100 g for a single food name — local database first, then AI.
 export async function POST(request: NextRequest) {
   try {
+    const unauth = await requireUser();
+    if (unauth) return unauth;
+
     const { name } = await request.json();
     if (!name || typeof name !== 'string' || name.length > 100) {
       return NextResponse.json({ error: 'Invalid food name' }, { status: 400 });

@@ -12,7 +12,7 @@ import {
 } from '@/lib/calculations';
 import Logo from '@/components/Logo';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 const TOTAL_STEPS = 8;
 
 const GOALS = [

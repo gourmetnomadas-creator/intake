@@ -9,7 +9,7 @@ import MealReviewTable from '@/components/MealReviewTable';
 import LoadingState from '@/components/LoadingState';
 import { Meal, AIAnalysisItem } from '@/types';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 export default function EditMealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

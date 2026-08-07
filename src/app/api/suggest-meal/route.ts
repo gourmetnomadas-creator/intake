@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
+import { requireUser } from '@/lib/api-auth';
 
 // Suggests the user's next meal from time of day, remaining daily budget,
 // dietary preferences, and the foods they actually cook.
 export async function POST(request: NextRequest) {
   try {
+    const unauth = await requireUser();
+    if (unauth) return unauth;
+
     const {
       mealType = 'meal',
       remainingKcal,

@@ -10,7 +10,7 @@ import ProfileForm from '@/components/ProfileForm';
 import LoadingState from '@/components/LoadingState';
 import { buildMarkdownReport } from '@/lib/export-report';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 export default function ProfilePage() {
   const router = useRouter();

@@ -11,7 +11,7 @@ import LoadingState from '@/components/LoadingState';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { timeOfDayLabels } from '@/lib/utils';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 export default function SupplementsPage() {
   const router = useRouter();

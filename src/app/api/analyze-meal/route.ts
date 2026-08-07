@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeMealSchema } from '@/lib/validations';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
+import { requireUser } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const unauth = await requireUser();
+    if (unauth) return unauth;
+
     const body = await request.json();
     const parsed = analyzeMealSchema.safeParse(body);
 

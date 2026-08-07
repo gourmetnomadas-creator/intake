@@ -1,4 +1,4 @@
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 const DEV_USER_ID = 'dev-user-id';
 const STORAGE_PREFIX = 'intake-dev-';
 

@@ -17,7 +17,7 @@ import LoadingState from '@/components/LoadingState';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { useRouter } from 'next/navigation';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 export default function TodayDashboard() {
   const router = useRouter();

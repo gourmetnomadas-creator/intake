@@ -10,7 +10,7 @@ import MealForm from '@/components/MealForm';
 import MealReviewTable from '@/components/MealReviewTable';
 import { AIAnalysisResult, AIAnalysisItem, MealType, WeightContext } from '@/types';
 
-const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 export default function AddMealPage() {
   return (
