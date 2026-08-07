@@ -40,7 +40,3 @@ export function searchLocalFoods(query: string): FoodEntry[] {
   const lower = query.toLowerCase();
   return commonFoods.filter((food) => food.name.includes(lower));
 }
-
-export function getAllFoods(): FoodEntry[] {
-  return commonFoods;
-}

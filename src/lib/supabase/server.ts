@@ -25,14 +25,3 @@ export async function createServerSupabaseClient() {
     }
   );
 }
-
-export async function getSession() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-}
-
-export async function getCurrentUser() {
-  const session = await getSession();
-  return session?.user ?? null;
-}
