@@ -24,6 +24,8 @@ function labelFormat(spanDays: number): string {
   return 'MMM';
 }
 
+const ACCENT = '#1f6f57';
+
 const W = 300;
 const H = 54;
 const MAX_LABELS = 7;
@@ -55,16 +57,23 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
 
   return (
     <div>
-      <div className="flex rounded-full bg-slate-100 p-[3px]">
+      <div style={{ display: 'flex', background: '#f2eee7', borderRadius: 999, padding: 3 }}>
         {RANGES.map((r) => (
           <button
             key={r.key}
             type="button"
             onClick={() => setRange(r.key)}
             aria-pressed={range === r.key}
-            className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition ${
-              range === r.key ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-700'
-            }`}
+            style={{
+              flex: 1,
+              padding: '7px 0',
+              borderRadius: 999,
+              font: '600 12px -apple-system,sans-serif',
+              cursor: 'pointer',
+              border: 'none',
+              background: range === r.key ? ACCENT : 'transparent',
+              color: range === r.key ? '#ffffff' : '#6b6b60',
+            }}
           >
             {r.label}
           </button>
@@ -78,7 +87,7 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
             width="100%"
             height={H}
             preserveAspectRatio="none"
-            className="mt-3 block overflow-visible"
+            style={{ display: 'block', marginTop: 12, overflow: 'visible' }}
           >
             {goalInView && (
               <line
@@ -91,11 +100,11 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
                 strokeDasharray="4,4"
               />
             )}
-            <path d={chart.area} fill="#1E6F63" fillOpacity="0.12" />
+            <path d={chart.area} fill={ACCENT} fillOpacity="0.12" />
             <path
               d={chart.line}
               fill="none"
-              stroke="#1E6F63"
+              stroke={ACCENT}
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -105,20 +114,20 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
               cy={chart.points[chart.points.length - 1][1]}
               r="4"
               fill="#fff"
-              stroke="#1E6F63"
+              stroke={ACCENT}
               strokeWidth="2.5"
             />
           </svg>
-          <div className="mt-1.5 flex justify-between">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
             {labels.map((e) => (
-              <span key={e.date} className="text-[10px] text-slate-400">
+              <span key={e.date} style={{ font: '500 10px -apple-system,sans-serif', color: '#b0aa9c' }}>
                 {format(parseISO(e.date), fmt)}
               </span>
             ))}
           </div>
         </>
       ) : (
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p style={{ font: '400 12px -apple-system,sans-serif', color: '#b0aa9c', textAlign: 'center', margin: '16px 0 0' }}>
           No weigh-ins in this range yet.
         </p>
       )}

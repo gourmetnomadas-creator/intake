@@ -1,10 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
+import { useState } from 'react';
 
-const PX_PER_KG = 400; // 40px per 0.1 kg
-
-// Vertical draggable/scrollable ruler for picking a weight in 0.1 kg steps.
 export default function WeightRuler({
   value,
   onChange,
@@ -12,77 +9,74 @@ export default function WeightRuler({
   value: number;
   onChange: (kg: number) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef({ active: false, startY: 0, startW: value });
-  const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputVal, setInputVal] = useState(value.toFixed(1));
   const clamp = (w: number) => Math.min(200, Math.max(30, w));
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    try {
-      ref.current?.setPointerCapture(e.pointerId);
-    } catch {}
-    drag.current = { active: true, startY: e.clientY, startW: value };
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!drag.current.active) return;
-    const dy = e.clientY - drag.current.startY;
-    onChange(clamp(drag.current.startW - dy / PX_PER_KG));
-  };
-  const onPointerUp = () => {
-    if (!drag.current.active) return;
-    drag.current.active = false;
-    onChange(Math.round(value * 10) / 10);
-  };
-  const onWheel = (e: React.WheelEvent) => {
-    onChange(clamp(value + (e.deltaY / 100) * 0.1));
-    if (wheelTimer.current) clearTimeout(wheelTimer.current);
-    wheelTimer.current = setTimeout(() => onChange(Math.round(value * 10) / 10), 120);
+  const handleDecrement = () => onChange(clamp(Math.round((value - 0.1) * 10) / 10));
+  const handleIncrement = () => onChange(clamp(Math.round((value + 0.1) * 10) / 10));
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputVal(e.target.value);
   };
 
-  const wTenths = Math.round(value * 10);
-  const ticks = [];
-  for (let i = -6; i <= 6; i++) {
-    const tv = (wTenths + i) / 10;
-    const py = (tv - value) * PX_PER_KG;
-    const selected = Math.abs(py) < 8;
-    ticks.push({ tv, py, selected });
-  }
+  const handleInputBlur = () => {
+    const parsed = parseFloat(inputVal);
+    if (!isNaN(parsed)) {
+      onChange(clamp(Math.round(parsed * 10) / 10));
+    } else {
+      setInputVal(value.toFixed(1));
+    }
+    setIsEditing(false);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleInputBlur();
+    if (e.key === 'Escape') {
+      setInputVal(value.toFixed(1));
+      setIsEditing(false);
+    }
+  };
 
   return (
-    <div className="relative mt-2 h-[200px]">
-      <div
-        ref={ref}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onWheel={onWheel}
-        className="relative h-[200px] cursor-grab overflow-hidden"
-        style={{
-          touchAction: 'none',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent, #000 15%, #000 85%, transparent)',
-          maskImage: 'linear-gradient(to bottom, transparent, #000 15%, #000 85%, transparent)',
-        }}
+    <div className="mt-5 flex items-center justify-center gap-4">
+      <button
+        onClick={handleDecrement}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-slate-600 transition hover:bg-slate-200 active:bg-slate-300"
+        aria-label="Decrease weight"
       >
-        {ticks.map((t) => (
-          <div
-            key={t.tv.toFixed(2)}
-            className="absolute left-0 right-0 text-center"
-            style={{
-              top: `calc(50% + ${t.py}px)`,
-              transform: 'translateY(-50%)',
-              fontFamily: 'var(--font-display), sans-serif',
-              fontSize: t.selected ? 30 : 21,
-              fontWeight: t.selected ? 700 : 400,
-              color: t.selected ? '#17201d' : '#c9ccc7',
-            }}
-          >
-            {t.tv.toFixed(2)}
-          </div>
-        ))}
-      </div>
-      <div className="pointer-events-none absolute left-[20%] right-[20%] h-px bg-slate-200" style={{ top: 'calc(50% - 27px)' }} />
-      <div className="pointer-events-none absolute left-[20%] right-[20%] h-px bg-slate-200" style={{ top: 'calc(50% + 27px)' }} />
+        −
+      </button>
+
+      {isEditing ? (
+        <input
+          type="number"
+          value={inputVal}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
+          autoFocus
+          step="0.1"
+          min="30"
+          max="200"
+          className="w-24 rounded-lg border-2 border-indigo-400 bg-white px-2 py-2 text-center text-2xl font-bold text-slate-900 outline-none"
+        />
+      ) : (
+        <button
+          onClick={() => setIsEditing(true)}
+          className="w-24 cursor-pointer rounded-lg py-2 text-center text-3xl font-bold text-slate-900 transition hover:bg-slate-50"
+        >
+          {value.toFixed(1)}
+        </button>
+      )}
+
+      <button
+        onClick={handleIncrement}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-slate-600 transition hover:bg-slate-200 active:bg-slate-300"
+        aria-label="Increase weight"
+      >
+        +
+      </button>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import MealPhotoInput from './MealPhotoInput';
-import { MealType, WeightContext } from '@/types';
+import { MealType, WeightContext, Meal } from '@/types';
 
 interface MealFormProps {
   onSubmit: (data: {
@@ -15,13 +15,26 @@ interface MealFormProps {
   }) => void;
   loading: boolean;
   initialDescription?: string;
+  todayMeals?: Meal[];
 }
 
 const today = () => new Date().toISOString().split('T')[0];
+const MEAL_TYPE_SEQUENCE: MealType[] = ['breakfast', 'snack', 'lunch', 'snack', 'dinner', 'dessert'];
 
-export default function MealForm({ onSubmit, loading, initialDescription = '' }: MealFormProps) {
+const getDefaultMealType = (meals: Meal[]): MealType => {
+  if (!meals.length) return 'breakfast';
+
+  const logged = new Set(meals.map(m => m.meal_type));
+  for (const type of MEAL_TYPE_SEQUENCE) {
+    if (!logged.has(type)) return type;
+  }
+  return 'breakfast';
+};
+
+export default function MealForm({ onSubmit, loading, initialDescription = '', todayMeals = [] }: MealFormProps) {
   const [description, setDescription] = useState(initialDescription);
-  const [mealType, setMealType] = useState<MealType>('lunch');
+  const suggestedMealType = useMemo(() => getDefaultMealType(todayMeals), [todayMeals]);
+  const [mealType, setMealType] = useState<MealType>(suggestedMealType);
   const [date, setDate] = useState(today());
   const [totalWeightGrams, setTotalWeightGrams] = useState('');
   const [weightContext, setWeightContext] = useState<WeightContext>('whole_plate');
@@ -52,8 +65,8 @@ export default function MealForm({ onSubmit, loading, initialDescription = '' }:
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">Meal type</label>
-        <div className="grid grid-cols-4 gap-2">
-          {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
+        <div className="grid grid-cols-3 gap-2">
+          {(['breakfast', 'snack', 'lunch', 'dinner', 'dessert'] as MealType[]).map((type) => (
             <button
               key={type}
               type="button"

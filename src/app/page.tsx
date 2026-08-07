@@ -135,6 +135,10 @@ export default function TodayDashboard() {
   };
 
   const remaining = targetKcal !== null ? Math.round(targetKcal - totals.totalKcal) : null;
+  const remainingProtein = proteinTarget !== null ? Math.round(proteinTarget - totals.totalProtein) : null;
+  const remainingCarbs = carbsTarget !== null ? Math.round(carbsTarget - totals.totalCarbs) : null;
+  const remainingFat = fatTarget !== null ? Math.round(fatTarget - totals.totalFat) : null;
+
   const statusLine =
     remaining === null
       ? 'Set your goal in Profile to track your progress.'
@@ -162,7 +166,11 @@ export default function TodayDashboard() {
         <SuggestMealCard
           userId={session.user.id}
           remainingKcal={remaining}
-          remainingProtein={proteinTarget !== null ? Math.round(proteinTarget - totals.totalProtein) : null}
+          remainingProtein={remainingProtein}
+          remainingCarbs={remainingCarbs}
+          remainingFat={remainingFat}
+          mealCount={meals.length}
+          consumedToday={meals.map(m => m.description).filter(Boolean) as string[]}
           dietType={profile?.diet_type ?? null}
           restrictions={profile?.dietary_restrictions ?? null}
         />

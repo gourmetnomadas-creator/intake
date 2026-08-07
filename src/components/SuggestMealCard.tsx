@@ -19,6 +19,10 @@ interface Props {
   userId: string;
   remainingKcal: number | null;
   remainingProtein: number | null;
+  remainingCarbs: number | null;
+  remainingFat: number | null;
+  mealCount: number;
+  consumedToday: string[];
   dietType: string | null;
   restrictions: string | null;
 }
@@ -35,6 +39,10 @@ export default function SuggestMealCard({
   userId,
   remainingKcal,
   remainingProtein,
+  remainingCarbs,
+  remainingFat,
+  mealCount,
+  consumedToday,
   dietType,
   restrictions,
 }: Props) {
@@ -70,6 +78,10 @@ export default function SuggestMealCard({
           mealType: mealTypeForNow(),
           remainingKcal,
           remainingProtein,
+          remainingCarbs,
+          remainingFat,
+          mealCount,
+          consumedToday,
           dietType,
           restrictions,
           recentFoods,

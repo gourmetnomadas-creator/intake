@@ -8,18 +8,26 @@ import { timeOfDayLabels } from '@/lib/utils';
 
 const timeOrder: TimeOfDay[] = ['morning', 'midday', 'evening', 'night'];
 
-export default function SupplementsCard({ userId }: { userId: string }) {
+export default function SupplementsCard({
+  userId,
+  date,
+  compact = false,
+}: {
+  userId: string;
+  date?: string;
+  compact?: boolean;
+}) {
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
+  const day = date ?? new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
       supabase.from('supplements').select('*').eq('user_id', userId).order('created_at'),
-      supabase.from('supplement_logs').select('supplement_id').eq('user_id', userId).eq('date', today),
+      supabase.from('supplement_logs').select('supplement_id').eq('user_id', userId).eq('date', day),
     ]).then(([supsRes, logsRes]) => {
       if (supsRes.data) setSupplements(supsRes.data);
       if (logsRes.data) {
@@ -27,7 +35,7 @@ export default function SupplementsCard({ userId }: { userId: string }) {
       }
       setLoaded(true);
     });
-  }, [userId]);
+  }, [userId, day]);
 
   const toggle = async (supplement: Supplement) => {
     const supabase = createClient();
@@ -46,12 +54,12 @@ export default function SupplementsCard({ userId }: { userId: string }) {
         .from('supplement_logs')
         .delete()
         .eq('supplement_id', supplement.id)
-        .eq('date', today);
+        .eq('date', day);
     } else {
       await supabase.from('supplement_logs').insert({
         user_id: userId,
         supplement_id: supplement.id,
-        date: today,
+        date: day,
       });
     }
   };
@@ -59,6 +67,7 @@ export default function SupplementsCard({ userId }: { userId: string }) {
   if (!loaded) return null;
 
   if (supplements.length === 0) {
+    if (compact) return null;
     return (
       <div className="mt-6 text-center">
         <Link href="/supplements" className="text-xs font-medium text-indigo-500 hover:text-indigo-600">
@@ -74,7 +83,7 @@ export default function SupplementsCard({ userId }: { userId: string }) {
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
+    <div className={`rounded-2xl bg-white p-4 shadow-sm ${compact ? '' : 'mt-6'}`}>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-800">
           Supplements{' '}
@@ -82,9 +91,11 @@ export default function SupplementsCard({ userId }: { userId: string }) {
             {takenCount}/{supplements.length}
           </span>
         </h3>
-        <Link href="/supplements" className="text-xs font-medium text-indigo-500 hover:text-indigo-600">
-          Manage
-        </Link>
+        {!compact && (
+          <Link href="/supplements" className="text-xs font-medium text-indigo-500 hover:text-indigo-600">
+            Manage
+          </Link>
+        )}
       </div>
 
       <div className="space-y-3">
