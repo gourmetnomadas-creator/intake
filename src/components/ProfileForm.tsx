@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Profile, ActivityLevel, GoalType } from '@/types';
 import { ageFromBirthdate, calculateBMR, getActivityMultiplier, getGoalAdjustment } from '@/lib/calculations';
+import WeightTrendChart from './WeightTrendChart';
 
 interface ProfileFormProps {
   profile: Profile | null;
   currentWeight: number | null;
   weightTrend: number | null;
+  weeklyAvg: number | null;
+  weightLogs: { date: string; weight_kg: number }[];
   onLogWeight: () => void;
   onSave: (data: Partial<Profile>) => void;
   saving: boolean;
@@ -17,6 +20,8 @@ export default function ProfileForm({
   profile,
   currentWeight,
   weightTrend,
+  weeklyAvg,
+  weightLogs,
   onLogWeight,
   onSave,
   saving,
@@ -109,8 +114,19 @@ export default function ProfileForm({
             </span>
             <span className="text-slate-300">›</span>
           </button>
+          {weeklyAvg != null && (
+            <p className="mt-1 text-xs text-slate-400">
+              7-day avg <span className="font-semibold text-slate-600">{weeklyAvg} kg</span>
+            </p>
+          )}
         </div>
       </div>
+
+      {weightLogs.length > 0 && (
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <WeightTrendChart logs={weightLogs} goalWeight={parseFloat(goalWeightKg) || null} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>

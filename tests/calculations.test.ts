@@ -8,6 +8,9 @@ import {
   calculateDailyCalorieTarget,
   formatGrams,
   formatKcal,
+  weeklyAverageWeight,
+  logsInRange,
+  buildTrendPath,
 } from '../src/lib/calculations';
 import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
 import { buildMarkdownReport } from '../src/lib/export-report';
@@ -42,9 +45,9 @@ describe('buildMarkdownReport', () => {
     expect(md).toContain('2026-07-24 — 400 kcal');
     expect(md).toContain('oats: 80 g');
     expect(md).toContain('Magnesium');
-    expect(md).toContain('tildado 1 día(s)');
+    expect(md).toContain('checked off on 1 day(s)');
     // protein target 80 * 1.6 = 128
-    expect(md).toContain('128 g/día');
+    expect(md).toContain('128 g/day');
   });
 });
 
@@ -276,5 +279,79 @@ describe('total grams validation', () => {
   it('rejects when sum does not match total', () => {
     const items = [{ grams: 100 }, { grams: 50 }];
     expect(totalGramsValidation(items, 200)).toBe(false);
+  });
+});
+
+describe('weeklyAverageWeight', () => {
+  const today = new Date('2026-08-06');
+
+  it('averages only the weigh-ins inside the 7-day window', () => {
+    expect(
+      weeklyAverageWeight(
+        [
+          { date: '2026-08-06', weight_kg: 61.1 },
+          { date: '2026-08-05', weight_kg: 60.4 },
+          { date: '2026-08-01', weight_kg: 60.3 },
+          { date: '2026-07-25', weight_kg: 99 }, // outside the window
+        ],
+        today
+      )
+    ).toBe(60.6);
+  });
+
+  it('returns null with fewer than two entries in the window', () => {
+    expect(weeklyAverageWeight([{ date: '2026-08-06', weight_kg: 61.1 }], today)).toBeNull();
+    expect(weeklyAverageWeight([], today)).toBeNull();
+  });
+});
+
+describe('logsInRange', () => {
+  const today = new Date('2026-08-06');
+  const logs = [
+    { date: '2026-08-06', weight_kg: 61 },
+    { date: '2026-08-02', weight_kg: 60 },
+    { date: '2026-07-20', weight_kg: 59 },
+    { date: '2025-09-01', weight_kg: 58 },
+    { date: '2024-01-01', weight_kg: 57 },
+  ];
+
+  it('windows by range', () => {
+    expect(logsInRange(logs, 'week', today).map((l) => l.date)).toEqual(['2026-08-06', '2026-08-02']);
+    expect(logsInRange(logs, 'month', today)).toHaveLength(3);
+    expect(logsInRange(logs, 'year', today)).toHaveLength(4);
+  });
+
+  it('excludes future-dated entries', () => {
+    expect(logsInRange([{ date: '2026-08-09', weight_kg: 61 }], 'year', today)).toEqual([]);
+  });
+});
+
+describe('buildTrendPath', () => {
+  const opts = { width: 100, height: 50, padTop: 0, padBottom: 0 };
+
+  it('returns null for an empty series', () => {
+    expect(buildTrendPath([], opts)).toBeNull();
+  });
+
+  it('spreads points across the width and inverts the y axis', () => {
+    const p = buildTrendPath([60, 62], opts)!;
+    expect(p.points[0][0]).toBe(0);
+    expect(p.points[1][0]).toBe(100);
+    // heavier weight sits higher on screen => smaller y
+    expect(p.points[1][1]).toBeLessThan(p.points[0][1]);
+    expect(p.line.startsWith('M0.0,')).toBe(true);
+    // area closes back down to the baseline
+    expect(p.area.endsWith('L100.0,50 Z')).toBe(true);
+  });
+
+  it('keeps an out-of-series goal on canvas', () => {
+    const p = buildTrendPath([60, 61], { ...opts, include: 40 })!;
+    const goalY = p.yAt(40);
+    expect(goalY).toBeGreaterThan(0);
+    expect(goalY).toBeLessThanOrEqual(50);
+  });
+
+  it('centres a single point', () => {
+    expect(buildTrendPath([60], opts)!.points[0][0]).toBe(50);
   });
 });

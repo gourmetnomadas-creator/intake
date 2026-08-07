@@ -9,6 +9,7 @@ import AppShell from '@/components/AppShell';
 import ProfileForm from '@/components/ProfileForm';
 import LoadingState from '@/components/LoadingState';
 import { buildMarkdownReport } from '@/lib/export-report';
+import { weeklyAverageWeight } from '@/lib/calculations';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
@@ -17,6 +18,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [weightTrend, setWeightTrend] = useState<number | null>(null);
+  const [weeklyAvg, setWeeklyAvg] = useState<number | null>(null);
+  const [weightLogs, setWeightLogs] = useState<{ date: string; weight_kg: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -78,8 +81,8 @@ export default function ProfilePage() {
             .from('body_weight_logs')
             .select('weight_kg, date')
             .eq('user_id', s.user.id)
-            .order('date', { ascending: false })
-            .limit(2),
+            // full history: the trend chart spans up to a year
+            .order('date', { ascending: false }),
         ]).then(([profRes, logsRes]) => {
           if (profRes.data) setProfile(profRes.data);
           const logs = logsRes.data ?? [];
@@ -88,6 +91,8 @@ export default function ProfilePage() {
           if (logs.length >= 2) {
             setWeightTrend(Math.round((logs[0].weight_kg - logs[1].weight_kg) * 10) / 10);
           }
+          setWeeklyAvg(weeklyAverageWeight(logs));
+          setWeightLogs(logs);
           setLoading(false);
         });
       } else {
@@ -125,6 +130,8 @@ export default function ProfilePage() {
         profile={profile}
         currentWeight={currentWeight}
         weightTrend={weightTrend}
+        weeklyAvg={weeklyAvg}
+        weightLogs={weightLogs}
         onLogWeight={() => router.push('/weight')}
         onSave={handleSave}
         saving={saving}

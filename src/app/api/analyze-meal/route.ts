@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 Analyze the meal description and return a JSON array of detected food items.
 
 Rules:
+- The description may be written in any language (Spanish and English are both common). Understand it either way; never ask the user to rewrite it.
 - Be conservative with estimates.
 ${
   totalWeightGrams

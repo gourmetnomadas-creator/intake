@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
+
 import { requireUser } from '@/lib/api-auth';
 
 // Receives a compact, pre-computed summary of the user's last 7 days and asks
-// the AI for a short, friendly, actionable review in Spanish.
+// the AI for a short, friendly, actionable review in English.
 export async function POST(request: NextRequest) {
   try {
     const unauth = await requireUser();
@@ -19,9 +20,9 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `Eres un coach de nutrición cercano y práctico. Recibes un resumen de los últimos 7 días de un usuario (promedios de calorías y macros vs sus objetivos, y adherencia a suplementos).
-Devuelve SOLO JSON válido: {"headline": "una frase resumen motivadora en español", "insights": ["3 a 5 observaciones cortas y accionables en español"]}.
-Reglas: sé concreto y usa los números del resumen. Menciona proteína, calorías, balance de macros y suplementos olvidados cuando aplique. Tono amable, sin alarmismo. No des consejo médico. Cada insight, una sola oración.`,
+          content: `You are a warm, practical nutrition coach. You receive a summary of a user's last 7 days (average calories and macros vs their targets, and supplement adherence).
+Return ONLY valid JSON: {"headline": "one motivating summary sentence in English", "insights": ["3 to 5 short, actionable observations in English"]}.
+Rules: be specific and use the numbers from the summary. Mention protein, calories, macro balance and missed supplements where relevant. Friendly tone, no alarmism. Do not give medical advice. Write everything in English. One sentence per insight.`,
         },
         { role: 'user', content: JSON.stringify(summary) },
       ],

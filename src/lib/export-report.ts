@@ -65,60 +65,60 @@ export function buildMarkdownReport(data: ReportData): string {
   const now = new Date();
   const lines: string[] = [];
 
-  lines.push('# Intake — Informe de datos');
+  lines.push('# Intake — Data report');
   lines.push('');
-  lines.push(`Generado: ${now.toISOString().split('T')[0]}`);
+  lines.push(`Generated: ${now.toISOString().split('T')[0]}`);
   lines.push('');
   lines.push(
-    'Este archivo contiene el historial de nutrición registrado por el usuario. ' +
-      'Analiza patrones de alimentación, adherencia a objetivos y suplementación, ' +
-      'y sugiere mejoras concretas de hábitos.'
+    'This file contains the nutrition history logged by the user. ' +
+      'Analyse eating patterns, adherence to targets and supplementation, ' +
+      'and suggest concrete habit improvements.'
   );
   lines.push('');
 
   // Profile
-  lines.push('## Perfil y objetivos');
+  lines.push('## Profile and targets');
   if (profile) {
     const age = ageFromBirthdate(profile.birthdate) ?? profile.age ?? null;
     const proteinTarget = profile.current_weight_kg ? r(profile.current_weight_kg * 1.6) : null;
-    lines.push(`- Nombre: ${profile.name || '—'}`);
-    lines.push(`- Sexo: ${profile.sex || '—'}`);
-    lines.push(`- Edad: ${age ?? '—'}`);
-    lines.push(`- Altura: ${profile.height_cm ?? '—'} cm`);
-    lines.push(`- Peso actual: ${profile.current_weight_kg ?? '—'} kg`);
-    lines.push(`- Nivel de actividad: ${profile.activity_level || '—'}`);
-    lines.push(`- Objetivo: ${profile.goal_type || '—'}`);
+    lines.push(`- Name: ${profile.name || '—'}`);
+    lines.push(`- Sex: ${profile.sex || '—'}`);
+    lines.push(`- Age: ${age ?? '—'}`);
+    lines.push(`- Height: ${profile.height_cm ?? '—'} cm`);
+    lines.push(`- Current weight: ${profile.current_weight_kg ?? '—'} kg`);
+    lines.push(`- Activity level: ${profile.activity_level || '—'}`);
+    lines.push(`- Goal: ${profile.goal_type || '—'}`);
     lines.push(
-      `- Objetivo calórico: ${profile.manual_calorie_target || profile.calculated_calorie_target || '—'} kcal/día`
+      `- Calorie target: ${profile.manual_calorie_target || profile.calculated_calorie_target || '—'} kcal/day`
     );
-    lines.push(`- Objetivo de proteína (1.6 g/kg): ${proteinTarget ?? '—'} g/día`);
+    lines.push(`- Protein target (1.6 g/kg): ${proteinTarget ?? '—'} g/day`);
   } else {
-    lines.push('- (Sin perfil cargado)');
+    lines.push('- (No profile saved)');
   }
   lines.push('');
 
   // Weight history
-  lines.push('## Historial de peso');
+  lines.push('## Weight history');
   if (weights.length) {
-    lines.push('| Fecha | Peso (kg) | Notas |');
+    lines.push('| Date | Weight (kg) | Notes |');
     lines.push('|---|---|---|');
     for (const w of [...weights].sort((a, b) => b.date.localeCompare(a.date))) {
       lines.push(`| ${w.date} | ${w.weight_kg} | ${w.notes || ''} |`);
     }
   } else {
-    lines.push('- (Sin registros de peso)');
+    lines.push('- (No weight entries)');
   }
   lines.push('');
 
   // Meals grouped by day, newest first
-  lines.push('## Comidas por día');
+  lines.push('## Meals by day');
   const byDay = new Map<string, ReportMeal[]>();
   for (const m of meals) {
     if (!byDay.has(m.date)) byDay.set(m.date, []);
     byDay.get(m.date)!.push(m);
   }
   const days = [...byDay.keys()].sort((a, b) => b.localeCompare(a));
-  if (!days.length) lines.push('- (Sin comidas registradas)');
+  if (!days.length) lines.push('- (No meals logged)');
   for (const day of days) {
     const dayMeals = byDay.get(day)!.sort((a, b) => a.meal_time.localeCompare(b.meal_time));
     const t = dayMeals.reduce(
@@ -131,13 +131,13 @@ export function buildMarkdownReport(data: ReportData): string {
       { kcal: 0, p: 0, c: 0, f: 0 }
     );
     lines.push('');
-    lines.push(`### ${day} — ${r(t.kcal)} kcal · P ${r(t.p)}g · C ${r(t.c)}g · G ${r(t.f)}g`);
+    lines.push(`### ${day} — ${r(t.kcal)} kcal · P ${r(t.p)}g · C ${r(t.c)}g · F ${r(t.f)}g`);
     for (const m of dayMeals) {
       const time = new Date(m.meal_time).toISOString().slice(11, 16);
       lines.push(
         `- **${time} [${m.meal_type}]** ${m.description || ''} — ${r(m.total_kcal)} kcal, P ${r(
           m.total_protein_g
-        )}g, C ${r(m.total_carbs_g)}g, G ${r(m.total_fat_g)}g`
+        )}g, C ${r(m.total_carbs_g)}g, F ${r(m.total_fat_g)}g`
       );
       for (const it of m.items || []) {
         lines.push(`    - ${it.food_name}: ${r(it.grams)} g (${r(it.kcal)} kcal, P ${r(it.protein_g)}g)`);
@@ -147,18 +147,18 @@ export function buildMarkdownReport(data: ReportData): string {
   lines.push('');
 
   // Supplements + adherence over the exported window
-  lines.push('## Suplementos');
+  lines.push('## Supplements');
   if (supplements.length) {
     for (const s of supplements) {
       const taken = supplementLogs.filter((l) => l.supplement_id === s.id).length;
       lines.push(
         `- **${s.name}**${s.dose ? ` (${s.dose})` : ''} — ${s.time_of_day}${
-          s.with_food ? ', con comida' : ''
-        } · tildado ${taken} día(s) en el historial${s.tip ? `\n    - Tip: ${s.tip}` : ''}`
+          s.with_food ? ', with food' : ''
+        } · checked off on ${taken} day(s) in this history${s.tip ? `\n    - Tip: ${s.tip}` : ''}`
       );
     }
   } else {
-    lines.push('- (Sin suplementos cargados)');
+    lines.push('- (No supplements saved)');
   }
   lines.push('');
 

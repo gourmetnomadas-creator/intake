@@ -218,19 +218,19 @@ export default function HistoryPage() {
 
     const supplementAdherence = (supps || []).map((s: { id: string; name: string }) => {
       const taken = (logs || []).filter((l: { supplement_id: string }) => l.supplement_id === s.id).length;
-      return `${s.name}: ${taken}/7 días`;
+      return `${s.name}: ${taken}/7 days`;
     });
 
     const summary = {
-      diasRegistrados: loggedDays,
-      promedioDiario: {
-        calorias: Math.round(sum.kcal / loggedDays),
-        proteina_g: Math.round(sum.protein / loggedDays),
-        carbohidratos_g: Math.round(sum.carbs / loggedDays),
-        grasa_g: Math.round(sum.fat / loggedDays),
+      loggedDays,
+      dailyAverage: {
+        calories: Math.round(sum.kcal / loggedDays),
+        protein_g: Math.round(sum.protein / loggedDays),
+        carbs_g: Math.round(sum.carbs / loggedDays),
+        fat_g: Math.round(sum.fat / loggedDays),
       },
-      objetivos: { calorias: targetKcal, proteina_g: proteinTarget },
-      suplementos: supplementAdherence,
+      targets: { calories: targetKcal, protein_g: proteinTarget },
+      supplements: supplementAdherence,
     };
 
     try {

@@ -8,6 +8,7 @@ import { BodyWeightLog } from '@/types';
 import AppShell from '@/components/AppShell';
 import WeightRuler from '@/components/WeightRuler';
 import LoadingState from '@/components/LoadingState';
+import { buildTrendPath } from '@/lib/calculations';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
@@ -107,30 +108,20 @@ export default function WeightPage() {
   }
 
   // History chart
-  let chart: null | { area: string; line: string; goalY: number; lastX: number; lastY: number; labels: string[] } = null;
-  if (entries.length > 0) {
-    const weights = entries.map((e) => e.kg);
-    const minVal = Math.min(...weights) - 1;
-    const maxVal = Math.max(Math.max(...weights), goalWeight ?? -Infinity) + 1;
-    const range = maxVal - minVal || 1;
-    const W = 328, H = 140, padTop = 10, padBottom = 10;
-    const plotH = H - padTop - padBottom;
-    const n = entries.length;
-    const xAt = (i: number) => (n > 1 ? (i / (n - 1)) * W : W / 2);
-    const yAt = (v: number) => padTop + plotH - ((v - minVal) / range) * plotH;
-    const coords = entries.map((e, i) => [xAt(i), yAt(e.kg)] as const);
-    const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ');
-    const area = `M${coords[0][0].toFixed(1)},${H} ${coords.map((c) => `L${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ')} L${coords[n - 1][0].toFixed(1)},${H} Z`;
-    const idxs = [...new Set(n > 1 ? [0, Math.floor((n - 1) / 2), n - 1] : [0])];
-    chart = {
-      area,
-      line,
-      goalY: goalWeight != null ? yAt(goalWeight) : -1,
-      lastX: coords[n - 1][0],
-      lastY: coords[n - 1][1],
-      labels: idxs.map((i) => shortDate(entries[i].date)),
-    };
-  }
+  const n = entries.length;
+  const path = buildTrendPath(entries.map((e) => e.kg), {
+    width: 328,
+    height: 140,
+    include: goalWeight,
+  });
+  const chart = path && {
+    ...path,
+    goalY: goalWeight != null ? path.yAt(goalWeight) : -1,
+    last: path.points[n - 1],
+    labels: [...new Set(n > 1 ? [0, Math.floor((n - 1) / 2), n - 1] : [0])].map((i) =>
+      shortDate(entries[i].date)
+    ),
+  };
 
   const recent = [...entries].reverse().slice(0, 3);
 
@@ -185,7 +176,7 @@ export default function WeightPage() {
             )}
             <path d={chart.area} fill="#1E6F63" fillOpacity="0.12" />
             <path d={chart.line} fill="none" stroke="#1E6F63" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={chart.lastX} cy={chart.lastY} r="4.5" fill="#E8654B" />
+            <circle cx={chart.last[0]} cy={chart.last[1]} r="4.5" fill="#E8654B" />
           </svg>
           <div className="mt-1.5 flex justify-between">
             {chart.labels.map((l, i) => (

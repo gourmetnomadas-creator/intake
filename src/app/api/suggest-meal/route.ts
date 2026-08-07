@@ -22,28 +22,28 @@ export async function POST(request: NextRequest) {
     const model = getModel();
 
     const dietLine = dietType && dietType !== 'omnivore'
-      ? `Dieta: ${dietType} (estricto).`
-      : 'Dieta: sin restricción (omnívoro).';
-    const avoidLine = restrictions ? `Evitar SIEMPRE (alergias/rechazos): ${restrictions}.` : '';
+      ? `Diet: ${dietType} (strict).`
+      : 'Diet: no restrictions (omnivore).';
+    const avoidLine = restrictions ? `ALWAYS avoid (allergies/dislikes): ${restrictions}.` : '';
 
     const completion = await ai.chat.completions.create({
       model,
       messages: [
         {
           role: 'system',
-          content: `Sos el asistente de nutrición de la app Intake. Sugerís la PRÓXIMA comida del usuario.
-Devolvés SOLO JSON válido: {"suggestions":[{"title":"nombre corto","description":"descripción con ingredientes y gramos aproximados, lista para registrar","kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"why":"una frase de por qué encaja hoy","repeat":boolean}]}.
-Reglas: exactamente 3 sugerencias. Una debe ser algo que el usuario ya come (repeat:true) y las otras dos alternativas distintas (repeat:false).
-RESPETÁ ESTRICTAMENTE la dieta y las alergias: nunca incluyas un ingrediente prohibido.
-Priorizá cubrir la proteína que falta y balancear macros dentro de las calorías restantes. Ingredientes realistas para cocinar en casa. En español.`,
+          content: `You are the nutrition assistant for the Intake app. You suggest the user's NEXT meal.
+Return ONLY valid JSON: {"suggestions":[{"title":"short name","description":"description with ingredients and approximate grams, ready to log","kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"why":"one sentence on why it fits today","repeat":boolean}]}.
+Rules: exactly 3 suggestions. One must be something the user already eats (repeat:true) and the other two distinct alternatives (repeat:false).
+STRICTLY RESPECT the diet and allergies: never include a forbidden ingredient.
+Prioritise covering the protein still missing and balancing macros within the remaining calories. Realistic ingredients for home cooking. Write everything in English.`,
         },
         {
           role: 'user',
-          content: `Momento: ${mealType}.
-Restante para hoy: ${Math.max(0, Math.round(remainingKcal ?? 0))} kcal, ${Math.max(0, Math.round(remainingProtein ?? 0))} g proteína.
+          content: `Time of day: ${mealType}.
+Remaining today: ${Math.max(0, Math.round(remainingKcal ?? 0))} kcal, ${Math.max(0, Math.round(remainingProtein ?? 0))} g protein.
 ${dietLine}
 ${avoidLine}
-Comidas que el usuario suele comer/cocinar: ${recentFoods || '(sin historial aún)'}.`,
+Foods the user usually eats/cooks: ${recentFoods || '(no history yet)'}.`,
         },
       ],
       temperature: 0.5,
