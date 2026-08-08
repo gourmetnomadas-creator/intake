@@ -18,12 +18,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { description, totalWeightGrams, weightContext } = parsed.data;
+    const { description, totalWeightGrams, weightContext, imageBase64 } = parsed.data;
     const ai = await getAIClient();
 
     const systemPrompt = `You are a cautious and helpful food analysis assistant.
 
-Analyze the meal description and return a JSON array of detected food items.
+Analyze the meal${imageBase64 ? ' from the photo and description' : ' description'} and return a JSON array of detected food items.
 
 Rules:
 - The description may be written in any language (Spanish and English are both common). Understand it either way; never ask the user to rewrite it.
@@ -62,16 +62,32 @@ Return ONLY valid JSON in this exact format:
   "warnings": ["string"]
 }`;
 
-    const userMessage = totalWeightGrams
+    const userMessageContent: any[] = [];
+
+    if (imageBase64) {
+      userMessageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${imageBase64}`,
+        },
+      });
+    }
+
+    const userText = totalWeightGrams
       ? `Description: "${description}"
 Total weight: ${totalWeightGrams}g
 Weight context: ${(weightContext ?? 'whole_plate').replace('_', ' ')}`
       : `Description: "${description}"
 No total weight provided — estimate portions from the description.`;
 
+    userMessageContent.push({
+      type: 'text',
+      text: userText,
+    });
+
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
+      { role: 'user', content: userMessageContent },
     ];
 
     const model = getModel();
@@ -97,7 +113,7 @@ No total weight provided — estimate portions from the description.`;
       ...result,
       warnings: [
         ...(result.warnings || []),
-        'Analysis is text-only (photo not analyzed). Please review carefully.',
+        imageBase64 ? 'Photo analyzed with text description.' : 'Analysis is text-only (photo not analyzed). Please review carefully.',
         'This is an estimate. Please review the grams before saving.',
       ].filter(Boolean),
     });
