@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeMealSchema } from '@/lib/validations';
-import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
+import { getAIClient, getModel, supportsJsonMode, supportsVision, extractJson } from '@/lib/ai';
 import { requireUser } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
@@ -20,20 +20,31 @@ export async function POST(request: NextRequest) {
 
     const { description, totalWeightGrams, weightContext, imageBase64 } = parsed.data;
     const ai = await getAIClient();
+    const model = getModel();
+
+    // Only attach the photo when the configured model can actually read it —
+    // deepseek-chat cannot, and would fail the whole request.
+    const analyzingPhoto = Boolean(imageBase64) && supportsVision(model);
 
     const systemPrompt = `You are a cautious and helpful food analysis assistant.
 
-Analyze the meal${imageBase64 ? ' from the photo and description' : ' description'} and return a JSON array of detected food items.
+Analyze the meal${analyzingPhoto ? ' photo and description' : ' description'} and return a JSON array of detected food items.
 
 Rules:
 - The description may be written in any language (Spanish and English are both common). Understand it either way; never ask the user to rewrite it.
 - Be conservative with estimates.
 ${
+  analyzingPhoto
+    ? `- A photo of the meal is attached. Use it to identify foods and judge portion sizes, and prefer what you can see over what the description implies when they disagree.
+- If the photo is too blurry or dark to read, say so in "warnings" and fall back to the description.`
+    : ''
+}
+${
   totalWeightGrams
     ? `- If weight context is "whole_plate", the sum of ingredient grams must equal ${totalWeightGrams}g.
 - If weight context is "one_ingredient", only the main ingredient gets ${totalWeightGrams}g; estimate others separately.
 - If weight context is "separate_ingredients", distribute ${totalWeightGrams}g according to the description proportions.`
-    : `- No total weight was given. Estimate each item's grams from the description using common serving sizes (e.g. "a glass of wine" ≈ 150 ml/150 g, "a coffee with milk" ≈ 200 g, "a slice of pizza" ≈ 120 g, "1 banana" ≈ 120 g). Keep confidence realistic since portions are estimated.`
+    : `- No total weight was given. Estimate each item's grams from the ${analyzingPhoto ? 'photo and description' : 'description'} using common serving sizes (e.g. "a glass of wine" ≈ 150 ml/150 g, "a coffee with milk" ≈ 200 g, "a slice of pizza" ≈ 120 g, "1 banana" ≈ 120 g). Keep confidence realistic since portions are estimated.`
 }
 - Use standard nutrition data per 100g for each food.
 - Mark confidence low (0.4-0.6) if unsure, medium (0.6-0.8) if reasonable, high (0.8-1.0) for obvious items.
@@ -62,35 +73,27 @@ Return ONLY valid JSON in this exact format:
   "warnings": ["string"]
 }`;
 
-    const userMessageContent: any[] = [];
-
-    if (imageBase64) {
-      userMessageContent.push({
-        type: 'image_url',
-        image_url: {
-          url: `data:image/jpeg;base64,${imageBase64}`,
-        },
-      });
-    }
-
     const userText = totalWeightGrams
       ? `Description: "${description}"
 Total weight: ${totalWeightGrams}g
 Weight context: ${(weightContext ?? 'whole_plate').replace('_', ' ')}`
       : `Description: "${description}"
-No total weight provided — estimate portions from the description.`;
+No total weight provided — estimate portions from the ${analyzingPhoto ? 'photo and description' : 'description'}.`;
 
-    userMessageContent.push({
-      type: 'text',
-      text: userText,
-    });
+    // Without a photo the content stays a plain string: DeepSeek's API rejects
+    // the array-of-parts shape outright.
+    // The client always re-encodes photos as JPEG, so the MIME type is known.
+    const userContent = analyzingPhoto
+      ? [
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+          { type: 'text', text: userText },
+        ]
+      : userText;
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessageContent },
+      { role: 'user', content: userContent },
     ];
-
-    const model = getModel();
 
     const completion = await ai.chat.completions.create({
       model,
@@ -113,7 +116,11 @@ No total weight provided — estimate portions from the description.`;
       ...result,
       warnings: [
         ...(result.warnings || []),
-        imageBase64 ? 'Photo analyzed with text description.' : 'Analysis is text-only (photo not analyzed). Please review carefully.',
+        analyzingPhoto
+          ? 'Photo analyzed alongside your description.'
+          : imageBase64
+            ? 'Your photo was not analyzed (this AI model reads text only). Please review carefully.'
+            : 'Analysis is text-only (no photo). Please review carefully.',
         'This is an estimate. Please review the grams before saving.',
       ].filter(Boolean),
     });

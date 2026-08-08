@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { downscaleImageToBase64 } from '@/lib/image';
 
 interface MealPhotoInputProps {
   photoPreview: string | null;
@@ -14,9 +15,11 @@ export default function MealPhotoInput({
   onClear,
 }: MealPhotoInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [processing, setProcessing] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
 
     // ponytail: Chrome can't decode iPhone HEIC files; on iOS the browser
@@ -25,17 +28,22 @@ export default function MealPhotoInput({
       alert(
         'This photo is in iPhone HEIC format, which this browser cannot display. Use a JPG/PNG here, or add the photo from your phone.'
       );
-      e.target.value = '';
+      input.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      const base64 = result.split(',')[1];
-      onPhotoCapture(base64);
-    };
-    reader.readAsDataURL(file);
+    setProcessing(true);
+    try {
+      // Downscale before anything else touches the photo — the full-res file
+      // is far too big to send to the analyzer.
+      onPhotoCapture(await downscaleImageToBase64(file));
+    } catch {
+      alert('Could not read this photo. Please try a different one.');
+    } finally {
+      setProcessing(false);
+      // Let the same file be picked again after a removal.
+      input.value = '';
+    }
   };
 
   const handleCapture = () => {
@@ -70,10 +78,13 @@ export default function MealPhotoInput({
         <button
           type="button"
           onClick={handleCapture}
-          className="flex h-48 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 transition hover:bg-slate-100"
+          disabled={processing}
+          className="flex h-48 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 transition hover:bg-slate-100 disabled:opacity-60"
         >
           <span className="text-3xl">📷</span>
-          <span className="mt-2 text-sm text-slate-500">Take photo or choose from gallery</span>
+          <span className="mt-2 text-sm text-slate-500">
+            {processing ? 'Preparing photo…' : 'Take photo or choose from gallery'}
+          </span>
         </button>
       )}
     </div>

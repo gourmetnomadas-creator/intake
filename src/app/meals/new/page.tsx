@@ -81,14 +81,14 @@ function AddMealInner() {
     setFormData(data);
 
     try {
-      // The AI only uses the text (description + weight); the photo is a
-      // local preview. Don't POST the multi-MB base64 image — it blows past
-      // the request-size limit and Safari throws a pattern-match error.
-      const { imageBase64, ...analyzePayload } = data;
+      // The photo is safe to POST now: MealPhotoInput downscales it at capture
+      // time, so this is a few hundred KB rather than the multi-MB original
+      // that used to overrun the request-size limit. The server drops it again
+      // if the configured AI model can't read images.
       const res = await fetch('/api/analyze-meal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(analyzePayload),
+        body: JSON.stringify(data),
       });
 
       if (!res.ok) {

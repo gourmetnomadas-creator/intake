@@ -40,6 +40,13 @@ export function supportsJsonMode(model: string): boolean {
   return model !== 'deepseek-chat';
 }
 
+// Whether the model can read images. deepseek-chat is text-only and its API
+// also rejects the array-of-parts message shape, so callers must fall back to
+// a plain text prompt rather than attaching the photo.
+export function supportsVision(model: string): boolean {
+  return model.startsWith('gpt-4') || model.startsWith('gemini-');
+}
+
 // Extract a JSON object from a completion that may wrap it in ```json fences
 export function extractJson(text: string): string {
   const jsonMatch = text.match(/```json\n([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
