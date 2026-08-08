@@ -1,6 +1,6 @@
 // Shared AI chat client: OpenAI, Gemini (free tier, OpenAI-compatible
 // endpoint) or DeepSeek, selected via AI_PROVIDER.
-const AI_PROVIDER = process.env.AI_PROVIDER || 'deepseek';
+const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -27,11 +27,18 @@ export async function getAIClient() {
   return _ai;
 }
 
-export function getModel(): string {
+// Meal analysis reads the photo and is the one call worth spending quota on;
+// everything else is short text work.
+export type AITask = 'meal-analysis' | 'light';
+
+export function getModel(task: AITask = 'light'): string {
   if (AI_PROVIDER === 'openai' && OPENAI_API_KEY) return 'gpt-4o-mini';
-  // flash-lite has a much higher free-tier quota; used for the lighter tasks
-  // (suggestions, supplement tips, weekly review). Meal analysis keeps flash.
-  if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) return 'gemini-flash-lite-latest';
+  if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) {
+    // flash-lite has roughly double the free-tier RPM, so the lighter tasks
+    // (suggestions, supplement tips, weekly review) use it. Meal analysis gets
+    // full flash, which reads photos noticeably better.
+    return task === 'meal-analysis' ? 'gemini-flash-latest' : 'gemini-flash-lite-latest';
+  }
   return 'deepseek-chat';
 }
 

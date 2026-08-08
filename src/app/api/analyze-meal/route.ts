@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const { description, totalWeightGrams, weightContext, imageBase64 } = parsed.data;
     const ai = await getAIClient();
-    const model = getModel();
+    const model = getModel('meal-analysis');
 
     // Only attach the photo when the configured model can actually read it —
     // deepseek-chat cannot, and would fail the whole request.

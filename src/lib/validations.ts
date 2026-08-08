@@ -1,7 +1,11 @@
 import { z } from 'zod';
+import { MEAL_TYPES, WEIGHT_CONTEXTS } from '@/types';
 
-export const mealTypeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
-export const weightContextSchema = z.enum(['whole_plate', 'one_ingredient', 'separate_ingredients']);
+// Derived from the shared constants so the schema can never fall behind the
+// meal types the form actually offers — "dessert" used to be missing here,
+// which made analyzing a dessert fail with a 400.
+export const mealTypeSchema = z.enum(MEAL_TYPES);
+export const weightContextSchema = z.enum(WEIGHT_CONTEXTS);
 
 export const mealItemSchema = z.object({
   foodName: z.string().min(1, 'Food name is required'),

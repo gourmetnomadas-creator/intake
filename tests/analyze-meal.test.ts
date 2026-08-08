@@ -22,6 +22,7 @@ vi.mock('@/lib/ai', async () => {
 
 const { POST } = await import('@/app/api/analyze-meal/route');
 const { supportsVision } = await import('@/lib/ai');
+const { MEAL_TYPES } = await import('@/types');
 
 const AI_RESULT = {
   items: [],
@@ -33,14 +34,24 @@ const AI_RESULT = {
   warnings: [],
 };
 
+// The route only ever calls request.json(), so a minimal stand-in is enough.
+type RouteRequest = Parameters<typeof POST>[0];
+
 const post = async (body: Record<string, unknown>) => {
-  const request = { json: async () => body } as any;
+  const request = { json: async () => body } as unknown as RouteRequest;
   const response = await POST(request);
   return { status: response.status, body: await response.json() };
 };
 
-const lastUserContent = () =>
-  createCompletion.mock.calls.at(-1)![0].messages.find((m: any) => m.role === 'user').content;
+interface ChatMessage {
+  role: string;
+  content: string | { type: string; text?: string; image_url?: { url: string } }[];
+}
+
+const lastUserContent = () => {
+  const [{ messages }] = createCompletion.mock.calls.at(-1) as [{ messages: ChatMessage[] }];
+  return messages.find((m) => m.role === 'user')!.content;
+};
 
 beforeEach(() => {
   createCompletion.mockReset();
@@ -110,6 +121,15 @@ describe('POST /api/analyze-meal message shape', () => {
 
     expect(typeof lastUserContent()).toBe('string');
     expect(body.warnings).toContain('Analysis is text-only (no photo). Please review carefully.');
+  });
+
+  it('accepts every meal type the form offers, dessert included', async () => {
+    currentModel = 'gpt-4o-mini';
+
+    for (const mealType of MEAL_TYPES) {
+      const { status } = await post({ description: 'flan', mealType });
+      expect(status, `meal type "${mealType}" should be accepted`).toBe(200);
+    }
   });
 
   it('rejects a photo that skipped the client-side downscaling', async () => {
