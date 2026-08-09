@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import MealPhotoInput from './MealPhotoInput';
+import VoiceDescriptionInput from './VoiceDescriptionInput';
 import { MEAL_TYPES, MealType, WeightContext, Meal } from '@/types';
 import { suggestNextMealType } from '@/lib/calculations';
 
@@ -112,6 +113,14 @@ export default function MealForm({ onSubmit, loading, initialDescription = '', t
           placeholder='e.g. "oatmeal with banana" or "200g oatmeal and one banana"'
           rows={2}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+        />
+        <VoiceDescriptionInput
+          disabled={loading}
+          // Added to whatever is already typed, so dictating twice builds the
+          // description up instead of replacing it.
+          onTranscribed={(text) =>
+            setDescription((current) => (current.trim() ? `${current.trim()} ${text}` : text))
+          }
         />
       </div>
 

@@ -54,6 +54,13 @@ export function supportsVision(model: string): boolean {
   return model.startsWith('gpt-4') || model.startsWith('gemini-');
 }
 
+// Whether the model can listen to an audio clip. Narrower than vision: the
+// gpt-4o-mini used here reads images but not audio, and OpenAI keeps audio
+// input to its dedicated audio models.
+export function supportsAudio(model: string): boolean {
+  return model.startsWith('gemini-');
+}
+
 // Extract a JSON object from a completion that may wrap it in ```json fences
 export function extractJson(text: string): string {
   const jsonMatch = text.match(/```json\n([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
