@@ -11,6 +11,7 @@ import {
   weeklyAverageWeight,
   logsInRange,
   buildTrendPath,
+  suggestNextMealType,
 } from '../src/lib/calculations';
 import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
 import { buildMarkdownReport } from '../src/lib/export-report';
@@ -65,6 +66,55 @@ describe('analyzeMealSchema', () => {
 
   it('accepts a meal with a photo', () => {
     expect(analyzeMealSchema.safeParse({ ...base, imageBase64: 'abc123' }).success).toBe(true);
+  });
+});
+
+describe('suggestNextMealType', () => {
+  it('starts the day with breakfast', () => {
+    expect(suggestNextMealType([])).toBe('breakfast');
+  });
+
+  it('walks the whole day one meal at a time', () => {
+    const logged: string[] = [];
+    const suggestions: string[] = [];
+
+    // Log whatever is suggested, six times over, and record the path taken.
+    for (let i = 0; i < 6; i++) {
+      const next = suggestNextMealType(logged);
+      suggestions.push(next);
+      logged.push(next);
+    }
+
+    expect(suggestions).toEqual(['breakfast', 'snack', 'lunch', 'snack', 'dinner', 'dessert']);
+  });
+
+  it('offers the second snack after lunch', () => {
+    // The bug this guards: counting distinct types rather than occurrences
+    // treated one snack as filling both slots and skipped ahead to dinner.
+    expect(suggestNextMealType(['breakfast', 'snack', 'lunch'])).toBe('snack');
+  });
+
+  it('moves on to dinner once both snacks are logged', () => {
+    expect(suggestNextMealType(['breakfast', 'snack', 'lunch', 'snack'])).toBe('dinner');
+  });
+
+  it('ignores the order meals were logged in', () => {
+    expect(suggestNextMealType(['lunch', 'breakfast', 'snack'])).toBe('snack');
+  });
+
+  it('suggests a snack once every slot is filled', () => {
+    expect(
+      suggestNextMealType(['breakfast', 'snack', 'lunch', 'snack', 'dinner', 'dessert'])
+    ).toBe('snack');
+  });
+
+  it('skips ahead when the day started late', () => {
+    expect(suggestNextMealType(['lunch'])).toBe('breakfast');
+    expect(suggestNextMealType(['breakfast', 'lunch'])).toBe('snack');
+  });
+
+  it('is unfazed by meal types outside the sequence', () => {
+    expect(suggestNextMealType(['breakfast', 'brunch'])).toBe('snack');
   });
 });
 

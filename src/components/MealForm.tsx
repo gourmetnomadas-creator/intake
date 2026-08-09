@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import MealPhotoInput from './MealPhotoInput';
 import { MEAL_TYPES, MealType, WeightContext, Meal } from '@/types';
+import { suggestNextMealType } from '@/lib/calculations';
 
 interface MealFormProps {
   onSubmit: (data: {
@@ -19,22 +20,18 @@ interface MealFormProps {
 }
 
 const today = () => new Date().toISOString().split('T')[0];
-const MEAL_TYPE_SEQUENCE: MealType[] = ['breakfast', 'snack', 'lunch', 'snack', 'dinner', 'dessert'];
-
-const getDefaultMealType = (meals: Meal[]): MealType => {
-  if (!meals.length) return 'breakfast';
-
-  const logged = new Set(meals.map(m => m.meal_type));
-  for (const type of MEAL_TYPE_SEQUENCE) {
-    if (!logged.has(type)) return type;
-  }
-  return 'breakfast';
-};
 
 export default function MealForm({ onSubmit, loading, initialDescription = '', todayMeals = [] }: MealFormProps) {
   const [description, setDescription] = useState(initialDescription);
-  const suggestedMealType = useMemo(() => getDefaultMealType(todayMeals), [todayMeals]);
-  const [mealType, setMealType] = useState<MealType>(suggestedMealType);
+  const suggestedMealType = useMemo(
+    () => suggestNextMealType(todayMeals.map((m) => m.meal_type)),
+    [todayMeals]
+  );
+  // Null until the user picks one. Today's meals arrive after this mounts, so
+  // a useState default would freeze the suggestion at breakfast; deferring to
+  // suggestedMealType lets it catch up without overriding a deliberate choice.
+  const [pickedMealType, setPickedMealType] = useState<MealType | null>(null);
+  const mealType = pickedMealType ?? suggestedMealType;
   const [date, setDate] = useState(today());
   const [totalWeightGrams, setTotalWeightGrams] = useState('');
   const [weightContext, setWeightContext] = useState<WeightContext>('whole_plate');
@@ -70,7 +67,7 @@ export default function MealForm({ onSubmit, loading, initialDescription = '', t
             <button
               key={type}
               type="button"
-              onClick={() => setMealType(type)}
+              onClick={() => setPickedMealType(type)}
               className={`rounded-lg py-2 text-sm font-medium capitalize transition ${
                 mealType === type
                   ? 'bg-indigo-500 text-white'
