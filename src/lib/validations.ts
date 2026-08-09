@@ -36,6 +36,22 @@ export const analyzeMealSchema = z.object({
   mealType: mealTypeSchema,
 });
 
+// Recordings are short spoken meal descriptions. A minute of AAC is well under
+// a megabyte, so this rejects anything that is not a quick clip.
+export const MAX_AUDIO_BASE64_LENGTH = 4_000_000;
+
+// The container the browser recorded in. Safari gives AAC in an MP4, Chrome
+// gives Opus in WebM, so neither end can assume a single format.
+export const audioFormatSchema = z.enum(['aac', 'mp3', 'ogg', 'wav', 'webm', 'flac']);
+
+export const transcribeSchema = z.object({
+  audioBase64: z
+    .string()
+    .min(1, 'Recording is empty')
+    .max(MAX_AUDIO_BASE64_LENGTH, 'Recording is too long'),
+  format: audioFormatSchema,
+});
+
 export const recalculateMealSchema = z.object({
   items: z.array(mealItemSchema).min(1, 'At least one item is required'),
 });
