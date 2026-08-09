@@ -1,3 +1,38 @@
+import type { MealType } from '@/types';
+
+// The order meals are normally logged through the day. Snack appears twice on
+// purpose: a mid-morning one and an afternoon one.
+export const MEAL_TYPE_SEQUENCE: readonly MealType[] = [
+  'breakfast',
+  'snack',
+  'lunch',
+  'snack',
+  'dinner',
+  'dessert',
+];
+
+/**
+ * Suggest which meal to log next, from the types already logged that day.
+ *
+ * Each logged meal claims one slot in the sequence, so a day that already has
+ * one snack still goes on to offer the second. Once every slot is claimed,
+ * anything further is most likely a snack.
+ */
+export function suggestNextMealType(loggedMealTypes: string[]): MealType {
+  const unclaimed = new Map<string, number>();
+  for (const type of loggedMealTypes) {
+    unclaimed.set(type, (unclaimed.get(type) ?? 0) + 1);
+  }
+
+  for (const type of MEAL_TYPE_SEQUENCE) {
+    const remaining = unclaimed.get(type) ?? 0;
+    if (remaining === 0) return type;
+    unclaimed.set(type, remaining - 1);
+  }
+
+  return 'snack';
+}
+
 export interface NutritionPer100g {
   kcalPer100g: number;
   proteinPer100g: number;
