@@ -111,16 +111,19 @@ describe('POST /api/analyze-meal message shape', () => {
       image_url: { url: 'data:image/jpeg;base64,AAAA' },
     });
     expect(content[1].type).toBe('text');
-    expect(body.warnings).toContain('Photo analyzed alongside your description.');
+    // A successfully analyzed photo is the expected case and stays silent.
+    expect(body.warnings.join(' ')).not.toMatch(/photo/i);
   });
 
-  it('reports a text-only analysis when no photo was supplied', async () => {
+  it('says nothing about photos when none was supplied', async () => {
     currentModel = 'gpt-4o-mini';
 
     const { body } = await post({ description: 'oatmeal', mealType: 'breakfast' });
 
     expect(typeof lastUserContent()).toBe('string');
-    expect(body.warnings).toContain('Analysis is text-only (no photo). Please review carefully.');
+    expect(body.warnings.join(' ')).not.toMatch(/photo/i);
+    // The estimate caveat is still worth showing.
+    expect(body.warnings).toContain('This is an estimate. Please review the grams before saving.');
   });
 
   it('accepts every meal type the form offers, dessert included', async () => {
