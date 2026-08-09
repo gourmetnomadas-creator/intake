@@ -8,6 +8,7 @@ import AppShell from '@/components/AppShell';
 import AddTabs from '@/components/AddTabs';
 import MealForm from '@/components/MealForm';
 import MealReviewTable from '@/components/MealReviewTable';
+import MealTypeModal from '@/components/MealTypeModal';
 import { AIAnalysisResult, AIAnalysisItem, MealType, WeightContext } from '@/types';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
@@ -27,6 +28,7 @@ function AddMealInner() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmingMealType, setConfirmingMealType] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [editableItems, setEditableItems] = useState<AIAnalysisItem[]>([]);
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
@@ -106,7 +108,9 @@ function AddMealInner() {
     }
   };
 
-  const handleSave = async () => {
+  // mealType comes from the confirmation modal rather than formData: it is
+  // easy to leave the form's default in place while focused on the photo.
+  const handleSave = async (mealType: MealType) => {
     if (!formData || !session) return;
     setSaving(true);
 
@@ -127,7 +131,7 @@ function AddMealInner() {
       .insert({
         user_id: session.user.id,
         date: formData.date,
-        meal_type: formData.mealType,
+        meal_type: mealType,
         description: formData.description,
         total_weight_g: formData.totalWeightGrams,
         weight_context: formData.weightContext,
@@ -205,7 +209,7 @@ function AddMealInner() {
               Back
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => setConfirmingMealType(true)}
               disabled={saving}
               className="flex-1 rounded-full bg-indigo-500 py-3 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
             >
@@ -213,6 +217,15 @@ function AddMealInner() {
             </button>
           </div>
         </div>
+      )}
+
+      {confirmingMealType && formData && (
+        <MealTypeModal
+          current={formData.mealType}
+          saving={saving}
+          onSelect={handleSave}
+          onCancel={() => setConfirmingMealType(false)}
+        />
       )}
     </AppShell>
   );
