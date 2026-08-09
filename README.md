@@ -35,6 +35,20 @@ npm install
 ```
 
 3. Go to **Authentication** > **Providers** and enable **Email** auth with Magic Link.
+
+   To offer "Continue with Google" as well, enable the **Google** provider on
+   that same page. It needs an OAuth client from the
+   [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   create an **OAuth client ID** of type *Web application*, and paste the
+   callback URL Supabase shows you (`https://<project-ref>.supabase.co/auth/v1/callback`)
+   into the client's **Authorized redirect URIs**. Copy the resulting client ID
+   and secret back into Supabase.
+
+   Then add every origin the app runs on — the production domain and
+   `http://localhost:3000` — under **Authentication** > **URL Configuration**,
+   as both the Site URL and additional redirect URLs. Google sends users back
+   to `/auth/callback`, which exchanges the code for a session; Supabase
+   refuses redirects to origins that are not on that list.
 4. Go to **Storage** > **Buckets** and create a new bucket called `meal-photos` (public or private depending on your preference).
 5. Go to **Project Settings** > **API** and copy your project URL and anon key.
 
