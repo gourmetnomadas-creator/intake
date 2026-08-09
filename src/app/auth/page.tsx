@@ -127,6 +127,12 @@ export default function AuthPage() {
             {loading ? 'Sending...' : 'Send login code'}
           </button>
         </form>
+        <p className="mt-6 text-xs leading-relaxed text-slate-400">
+          Meal photos and descriptions are sent to Google&apos;s Gemini API to estimate
+          nutrition. On its free tier, Google may use what it receives to improve
+          its models. Your meals, weight and profile are stored privately and are
+          not visible to other people using this app.
+        </p>
       </div>
     </div>
   );
