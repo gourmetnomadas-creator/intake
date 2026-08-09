@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:ai": "node scripts/check-ai.mjs"
   },
   "dependencies": {
     "@supabase/auth-js": "^2.108.1",

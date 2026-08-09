@@ -53,8 +53,30 @@ Fill in your values:
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key (for server-side operations) |
-| `OPENAI_API_KEY` | Your OpenAI API key |
+| `AI_PROVIDER` | `gemini` (default), `openai` or `deepseek` |
+| `GEMINI_API_KEY` | Your Gemini API key — required when `AI_PROVIDER=gemini` |
 | `USDA_API_KEY` | (Optional) USDA FoodData Central API key |
+
+#### Photo analysis
+
+Meals logged with a photo are analyzed from the picture as well as the text,
+but only when the provider supports image input. `gemini` and `openai` do;
+`deepseek` is text-only, and meals logged against it fall back to analyzing
+the description with a warning shown in the review screen.
+
+Gemini's free tier covers image input on both models this app uses, which
+makes it the cheapest way to get photo analysis working. Get a key at
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+
+Note that Google may use free-tier requests to improve its models; the paid
+tier does not.
+
+Once the key is in `.env.local`, confirm the whole path works — including
+that the model really can read an image:
+
+```bash
+npm run check:ai
+```
 
 ### 4. Run locally
 
@@ -78,6 +100,11 @@ npm test
 4. Deploy.
 
 The app should work immediately. Make sure your Supabase project allows requests from your Vercel domain.
+
+Environment variables set in Vercel override the defaults in the code, so an
+old `AI_PROVIDER=deepseek` left in project settings will keep photo analysis
+switched off even after deploying. Update or remove it there, then redeploy —
+Vercel only picks up environment changes on a new build.
 
 ## PWA installation on iPhone
 
