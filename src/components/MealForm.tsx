@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import MealPhotoInput from './MealPhotoInput';
-import { MealType, WeightContext, Meal } from '@/types';
+import { MEAL_TYPES, MealType, WeightContext, Meal } from '@/types';
 
 interface MealFormProps {
   onSubmit: (data: {
@@ -66,7 +66,7 @@ export default function MealForm({ onSubmit, loading, initialDescription = '', t
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">Meal type</label>
         <div className="grid grid-cols-3 gap-2">
-          {(['breakfast', 'snack', 'lunch', 'dinner', 'dessert'] as MealType[]).map((type) => (
+          {MEAL_TYPES.map((type) => (
             <button
               key={type}
               type="button"

@@ -129,7 +129,17 @@ export interface SupplementLog {
 }
 
 export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night';
-export type MealType = 'breakfast' | 'snack' | 'lunch' | 'dinner' | 'dessert';
-export type WeightContext = 'whole_plate' | 'one_ingredient' | 'separate_ingredients';
+
+// Single source of truth for meal types: the form's buttons and the API's
+// validation schema both derive from this, so they cannot drift apart.
+export const MEAL_TYPES = ['breakfast', 'snack', 'lunch', 'dinner', 'dessert'] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
+
+export const WEIGHT_CONTEXTS = [
+  'whole_plate',
+  'one_ingredient',
+  'separate_ingredients',
+] as const;
+export type WeightContext = (typeof WEIGHT_CONTEXTS)[number];
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 export type GoalType = 'lose' | 'mild_deficit' | 'maintain' | 'mild_surplus' | 'gain' | 'manual';
