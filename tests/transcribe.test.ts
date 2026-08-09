@@ -16,7 +16,7 @@ vi.mock('@/lib/ai', async () => {
 
 const { POST } = await import('@/app/api/transcribe/route');
 const { supportsAudio, supportsVision } = await import('@/lib/ai');
-const { audioFormatFromMimeType } = await import('@/lib/audio');
+const { encodeWav, TARGET_SAMPLE_RATE } = await import('@/lib/audio');
 
 const post = async (body: Record<string, unknown>) => {
   const request = { json: async () => body } as unknown as Parameters<typeof POST>[0];
@@ -42,20 +42,53 @@ beforeEach(() => {
   });
 });
 
-describe('audioFormatFromMimeType', () => {
-  it('maps what Safari records', () => {
-    expect(audioFormatFromMimeType('audio/mp4')).toBe('aac');
-    expect(audioFormatFromMimeType('audio/mp4;codecs=mp4a.40.2')).toBe('aac');
+describe('encodeWav', () => {
+  const read = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const ascii = (bytes: Uint8Array, at: number, length: number) =>
+    String.fromCharCode(...bytes.subarray(at, at + length));
+
+  it('writes a header a decoder will accept', () => {
+    const samples = new Float32Array(8);
+    const wav = encodeWav(samples, TARGET_SAMPLE_RATE);
+    const view = read(wav);
+
+    expect(ascii(wav, 0, 4)).toBe('RIFF');
+    expect(ascii(wav, 8, 4)).toBe('WAVE');
+    expect(ascii(wav, 12, 4)).toBe('fmt ');
+    expect(ascii(wav, 36, 4)).toBe('data');
+    expect(view.getUint16(20, true)).toBe(1); // uncompressed PCM
+    expect(view.getUint16(22, true)).toBe(1); // mono
+    expect(view.getUint32(24, true)).toBe(TARGET_SAMPLE_RATE);
+    expect(view.getUint16(34, true)).toBe(16); // bits per sample
   });
 
-  it('maps what Chrome and Firefox record', () => {
-    expect(audioFormatFromMimeType('audio/webm;codecs=opus')).toBe('webm');
-    expect(audioFormatFromMimeType('audio/ogg;codecs=opus')).toBe('ogg');
+  it('sizes the file and its declared lengths consistently', () => {
+    const samples = new Float32Array(1000);
+    const wav = encodeWav(samples, TARGET_SAMPLE_RATE);
+    const view = read(wav);
+
+    expect(wav.length).toBe(44 + 1000 * 2);
+    expect(view.getUint32(4, true)).toBe(wav.length - 8); // RIFF size
+    expect(view.getUint32(40, true)).toBe(1000 * 2); // data size
   });
 
-  it('falls back to webm for anything unrecognised', () => {
-    expect(audioFormatFromMimeType('audio/some-future-thing')).toBe('webm');
-    expect(audioFormatFromMimeType('')).toBe('webm');
+  it('converts float samples to 16-bit and clips out-of-range input', () => {
+    const wav = encodeWav(new Float32Array([0, 1, -1, 0.5, 2, -2]), TARGET_SAMPLE_RATE);
+    const view = read(wav);
+    const at = (i: number) => view.getInt16(44 + i * 2, true);
+
+    expect(at(0)).toBe(0);
+    expect(at(1)).toBe(32767);
+    expect(at(2)).toBe(-32768);
+    expect(at(3)).toBe(16383);
+    expect(at(4)).toBe(32767); // clipped, not wrapped
+    expect(at(5)).toBe(-32768);
+  });
+
+  it('keeps a minute of speech within the upload limit', () => {
+    const oneMinute = encodeWav(new Float32Array(TARGET_SAMPLE_RATE * 60), TARGET_SAMPLE_RATE);
+    // base64 inflates by 4/3, and the endpoint caps at 4,000,000 characters.
+    expect(Math.ceil(oneMinute.length / 3) * 4).toBeLessThan(4_000_000);
   });
 });
 

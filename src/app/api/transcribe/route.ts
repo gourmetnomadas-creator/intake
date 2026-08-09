@@ -65,7 +65,11 @@ Rules:
 
     return NextResponse.json({ text });
   } catch (error) {
-    console.error('Transcribe error:', error);
+    // Log the provider's own words: without them a rejected audio format and
+    // an exhausted quota look identical from the outside.
+    const status = (error as { status?: number }).status;
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error('Transcribe error:', status ?? '(no status)', detail);
     return NextResponse.json(
       { error: 'Could not transcribe the recording. Please try again or type the description.' },
       { status: 500 }

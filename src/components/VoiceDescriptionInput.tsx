@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { audioFormatFromMimeType, canRecordAudio, pickRecordingMimeType } from '@/lib/audio';
+import { blobToWavBase64, canRecordAudio, pickRecordingMimeType } from '@/lib/audio';
 
 // Long enough to describe a plate, short enough to keep the upload small.
 const MAX_SECONDS = 60;
@@ -12,14 +12,6 @@ interface VoiceDescriptionInputProps {
 }
 
 type Status = 'idle' | 'recording' | 'transcribing';
-
-const blobToBase64 = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = () => reject(new Error('Could not read the recording'));
-    reader.readAsDataURL(blob);
-  });
 
 export default function VoiceDescriptionInput({
   onTranscribed,
@@ -49,16 +41,17 @@ export default function VoiceDescriptionInput({
     if (status === 'recording' && seconds >= MAX_SECONDS) recorderRef.current?.stop();
   }, [status, seconds]);
 
-  const transcribe = async (blob: Blob, mimeType: string) => {
+  const transcribe = async (blob: Blob) => {
     setStatus('transcribing');
     try {
+      // Always upload WAV. Safari records MP4 and Chrome WebM, and the
+      // transcription endpoint accepts neither.
+      const audioBase64 = await blobToWavBase64(blob);
+
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          audioBase64: await blobToBase64(blob),
-          format: audioFormatFromMimeType(mimeType),
-        }),
+        body: JSON.stringify({ audioBase64, format: 'wav' }),
       });
 
       const data = await response.json();
@@ -105,7 +98,7 @@ export default function VoiceDescriptionInput({
         setStatus('idle');
         return;
       }
-      void transcribe(blob, recorder.mimeType);
+      void transcribe(blob);
     };
 
     recorderRef.current = recorder;
