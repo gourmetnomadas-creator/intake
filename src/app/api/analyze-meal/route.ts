@@ -116,11 +116,12 @@ No total weight provided — estimate portions from the ${analyzingPhoto ? 'phot
       ...result,
       warnings: [
         ...(result.warnings || []),
-        analyzingPhoto
-          ? 'Photo analyzed alongside your description.'
-          : imageBase64
-            ? 'Your photo was not analyzed (this AI model reads text only). Please review carefully.'
-            : 'Analysis is text-only (no photo). Please review carefully.',
+        // Analyzing the photo, or having none to analyze, is the expected case
+        // and needs no announcement. Only speak up when a photo was attached
+        // and silently ignored, which the user has no other way to notice.
+        ...(imageBase64 && !analyzingPhoto
+          ? ['Your photo was not analyzed (this AI model reads text only). Please review carefully.']
+          : []),
         'This is an estimate. Please review the grams before saving.',
       ].filter(Boolean),
     });
