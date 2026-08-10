@@ -53,6 +53,18 @@ const lastUserContent = () => {
   return messages.find((m) => m.role === 'user')!.content;
 };
 
+const lastSystemPrompt = () => {
+  const [{ messages }] = createCompletion.mock.calls.at(-1) as [{ messages: ChatMessage[] }];
+  return messages.find((m) => m.role === 'system')!.content as string;
+};
+
+const userText = () => {
+  const content = lastUserContent();
+  return typeof content === 'string'
+    ? content
+    : content.find((part) => part.type === 'text')!.text!;
+};
+
 beforeEach(() => {
   createCompletion.mockReset();
   createCompletion.mockResolvedValue({
@@ -124,6 +136,38 @@ describe('POST /api/analyze-meal message shape', () => {
     expect(body.warnings.join(' ')).not.toMatch(/photo/i);
     // The estimate caveat is still worth showing.
     expect(body.warnings).toContain('This is an estimate. Please review the grams before saving.');
+  });
+
+  it('analyzes a photo that arrived with nothing written about it', async () => {
+    currentModel = 'gpt-4o-mini';
+
+    const { status } = await post({ mealType: 'breakfast', imageBase64: 'AAAA' });
+
+    expect(status).toBe(200);
+    expect(Array.isArray(lastUserContent())).toBe(true);
+    // No empty Description line for the model to puzzle over.
+    expect(userText()).not.toContain('Description: ""');
+    expect(userText()).toMatch(/read the meal from the photo/i);
+    expect(lastSystemPrompt()).toMatch(/identify every food you can see/i);
+    expect(lastSystemPrompt()).toMatch(/include drinks/i);
+  });
+
+  it('does not ask for photo-only reading when a description came too', async () => {
+    currentModel = 'gpt-4o-mini';
+
+    await post({ description: 'omelette and toast', mealType: 'breakfast', imageBase64: 'AAAA' });
+
+    expect(userText()).toContain('Description: "omelette and toast"');
+    expect(lastSystemPrompt()).not.toMatch(/identify every food you can see/i);
+  });
+
+  it('refuses a meal with neither a photo nor a description', async () => {
+    currentModel = 'gpt-4o-mini';
+
+    const { status } = await post({ mealType: 'breakfast' });
+
+    expect(status).toBe(400);
+    expect(createCompletion).not.toHaveBeenCalled();
   });
 
   it('accepts every meal type the form offers, dessert included', async () => {

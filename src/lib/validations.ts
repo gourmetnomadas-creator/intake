@@ -23,18 +23,24 @@ export const mealItemSchema = z.object({
 // skipped the client-side downscaling.
 export const MAX_IMAGE_BASE64_LENGTH = 2_000_000;
 
-export const analyzeMealSchema = z.object({
-  imageUrl: z.string().nullable().optional(),
-  imageBase64: z
-    .string()
-    .max(MAX_IMAGE_BASE64_LENGTH, 'Photo is too large to analyze')
-    .nullable()
-    .optional(),
-  description: z.string().min(1, 'Description is required'),
-  totalWeightGrams: z.number().positive('Total weight in grams must be positive').nullable().optional(),
-  weightContext: weightContextSchema.nullable().optional(),
-  mealType: mealTypeSchema,
-});
+export const analyzeMealSchema = z
+  .object({
+    imageUrl: z.string().nullable().optional(),
+    imageBase64: z
+      .string()
+      .max(MAX_IMAGE_BASE64_LENGTH, 'Photo is too large to analyze')
+      .nullable()
+      .optional(),
+    // Optional on its own: a photo can carry the whole meal.
+    description: z.string().default(''),
+    totalWeightGrams: z.number().positive('Total weight in grams must be positive').nullable().optional(),
+    weightContext: weightContextSchema.nullable().optional(),
+    mealType: mealTypeSchema,
+  })
+  .refine((data) => data.description.trim().length > 0 || Boolean(data.imageBase64), {
+    message: 'Add a description or a photo',
+    path: ['description'],
+  });
 
 // Recordings are short spoken meal descriptions. A minute of AAC is well under
 // a megabyte, so this rejects anything that is not a quick clip.

@@ -44,8 +44,9 @@ export default function MealForm({ onSubmit, loading, initialDescription = '', t
     setError('');
 
     const weight = parseFloat(totalWeightGrams);
-    if (!description.trim()) {
-      setError('Please enter a meal description.');
+    // Either one is enough on its own — the AI reads the photo too.
+    if (!description.trim() && !imageBase64) {
+      setError('Add a photo or a description of the meal.');
       return;
     }
 
