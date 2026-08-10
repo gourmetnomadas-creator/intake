@@ -67,6 +67,24 @@ describe('analyzeMealSchema', () => {
   it('accepts a meal with a photo', () => {
     expect(analyzeMealSchema.safeParse({ ...base, imageBase64: 'abc123' }).success).toBe(true);
   });
+
+  it('accepts a photo with nothing written about it', () => {
+    const withoutDescription = { ...base, description: undefined };
+    expect(
+      analyzeMealSchema.safeParse({ ...withoutDescription, imageBase64: 'abc123' }).success
+    ).toBe(true);
+    expect(
+      analyzeMealSchema.safeParse({ ...base, description: '   ', imageBase64: 'abc123' }).success
+    ).toBe(true);
+  });
+
+  it('rejects a meal with neither a photo nor a description', () => {
+    const result = analyzeMealSchema.safeParse({ ...base, description: '  ', imageBase64: null });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toMatch(/description or a photo/i);
+    }
+  });
 });
 
 describe('suggestNextMealType', () => {
