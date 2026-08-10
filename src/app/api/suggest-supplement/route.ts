@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
         {
           role: 'system',
           content: `You advise on the best time of day to take a dietary supplement.
-Return ONLY valid JSON: {"timeOfDay": "morning"|"midday"|"evening"|"night", "withFood": boolean, "tip": "one short sentence in Spanish explaining when/how to take it and why"}.
+Return ONLY valid JSON: {"timeOfDay": "morning"|"midday"|"evening"|"night", "withFood": boolean, "tip": "one short sentence in English explaining when/how to take it and why"}.
+The supplement name may be written in any language; answer in English regardless.
 Be practical and conventional; if evidence is mixed, pick the most common recommendation.`,
         },
         { role: 'user', content: `Supplement: ${name}` },

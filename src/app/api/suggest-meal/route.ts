@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
           role: 'system',
           content: `You are Intake's nutrition assistant. You suggest 3 meals for the user's NEXT meal, prioritising closing their nutritional gaps for the day.
 
+LANGUAGE: every title, description and "why" must be written in English. The meals the user logged may be written in another language — translate those dishes into English rather than echoing the words back. This holds no matter what language the context below is in.
+
 JSON RESPONSE: {"suggestions":[{"title":"name","description":"ingredients and grams, ready to log","kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"why":"WHY this meal today (e.g. 'You're 20g short on protein — this adds 22g')","repeat":boolean}]}
 
 STRICT RULES:
@@ -71,7 +73,7 @@ STRICT RULES:
 5. Strictly respect the stated diet.
 6. Each meal must fit within the remaining calories.
 7. The "why" must explain which specific macro it addresses or what variety it adds.
-8. Realistic ingredients for home cooking. Write everything in English.`,
+8. Realistic ingredients for home cooking.`,
         },
         {
           role: 'user',
@@ -91,7 +93,8 @@ Meals the user usually eats: ${recentFoods || '(no history yet)'}.
 
 INSTRUCTIONS:
 - 1st suggestion: a favourite/habitual meal (repeat:true) that addresses the gaps.
-- 2nd and 3rd: new options the user has not eaten today, one focused on the macro gap, one on variety.`,
+- 2nd and 3rd: new options the user has not eaten today, one focused on the macro gap, one on variety.
+- Answer in English, including any dish above that is written in another language.`,
         },
       ],
       temperature: 0.6,
