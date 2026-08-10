@@ -12,30 +12,53 @@ export default function SupplementsCard({
   userId,
   date,
   compact = false,
+  supplements: providedSupplements,
 }: {
   userId: string;
   date?: string;
   compact?: boolean;
+  /**
+   * The user's supplements, when the caller already has them. A history page
+   * renders one card per day, and the list is the same for every one of them —
+   * without this each card fetches an identical copy.
+   */
+  supplements?: Supplement[];
 }) {
-  const [supplements, setSupplements] = useState<Supplement[]>([]);
+  const [fetchedSupplements, setFetchedSupplements] = useState<Supplement[]>([]);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
   const day = date ?? new Date().toISOString().split('T')[0];
+  const supplements = providedSupplements ?? fetchedSupplements;
+
+  // Depend on whether a list was given, not on the array: a caller passing a
+  // fresh array each render would otherwise re-run this effect every render.
+  const listProvided = providedSupplements != null;
 
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase.from('supplements').select('*').eq('user_id', userId).order('created_at'),
-      supabase.from('supplement_logs').select('supplement_id').eq('user_id', userId).eq('date', day),
-    ]).then(([supsRes, logsRes]) => {
-      if (supsRes.data) setSupplements(supsRes.data);
+
+    const logs = supabase
+      .from('supplement_logs')
+      .select('supplement_id')
+      .eq('user_id', userId)
+      .eq('date', day);
+
+    // Only ask for the list when the caller did not supply one.
+    const list = listProvided
+      ? Promise.resolve({ data: null })
+      : supabase.from('supplements').select('*').eq('user_id', userId).order('created_at');
+
+    Promise.all([list, logs]).then(([supsRes, logsRes]) => {
+      if (supsRes.data) setFetchedSupplements(supsRes.data);
       if (logsRes.data) {
-        setTakenIds(new Set(logsRes.data.map((l: any) => l.supplement_id)));
+        setTakenIds(
+          new Set(logsRes.data.map((l: { supplement_id: string }) => l.supplement_id))
+        );
       }
       setLoaded(true);
     });
-  }, [userId, day]);
+  }, [userId, day, listProvided]);
 
   const toggle = async (supplement: Supplement) => {
     const supabase = createClient();
