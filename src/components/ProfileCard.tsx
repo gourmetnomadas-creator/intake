@@ -47,11 +47,17 @@ export default function ProfileCard({
     ? Math.round((targetKcal * 0.3) / 4)
     : null;
 
-  const goalWeight = profile.goal_weight_kg || 65;
+  // No invented goal: showing a target the user never chose reads as theirs.
+  const goalWeight = profile.goal_weight_kg;
   const weight = currentWeight || profile.current_weight_kg || 60;
-  const diff = goalWeight - weight;
-  const totalDiff = goalWeight - (profile.current_weight_kg || 60);
-  const progress = totalDiff !== 0 ? Math.min(1, Math.max(0, (Math.abs(totalDiff - Math.abs(diff)) / Math.abs(totalDiff)))) : 1;
+  const diff = goalWeight != null ? goalWeight - weight : null;
+  const totalDiff = goalWeight != null ? goalWeight - (profile.current_weight_kg || 60) : 0;
+  const progress =
+    goalWeight == null
+      ? 0
+      : totalDiff !== 0
+      ? Math.min(1, Math.max(0, Math.abs(totalDiff - Math.abs(diff ?? 0)) / Math.abs(totalDiff)))
+      : 1;
   const progressDegrees = progress * 360;
 
   const totals = {
@@ -94,7 +100,9 @@ export default function ProfileCard({
               {weightTrend ? (weightTrend > 0 ? '▲' : '▼') : '—'} {Math.abs(weightTrend ?? 0).toFixed(1)} kg
             </div>
             <div style={{ font: '500 12.5px -apple-system,sans-serif', color: '#8a8578', marginTop: '4px' }}>
-              {Math.abs(diff).toFixed(1)} kg to {goalWeight} kg goal
+              {diff != null && goalWeight != null
+                ? `${Math.abs(diff).toFixed(1)} kg to ${goalWeight} kg goal`
+                : 'No goal set yet'}
             </div>
           </div>
         </div>
@@ -182,10 +190,14 @@ export default function ProfileCard({
       >
         <div>
           <div style={{ font: '600 15px -apple-system,sans-serif', color: '#1c1c1a' }}>
-            Personal & goal details
+            Weight & goal
           </div>
           <div style={{ font: '400 12px -apple-system,sans-serif', color: '#8a8578', marginTop: '2px' }}>
-            Name, height, birthdate, sex, activity
+            {/* This row opens the weight screen, so it names what is actually
+                editable there rather than fields it cannot reach. */}
+            {profile.goal_weight_kg != null
+              ? `Log your weight · goal ${profile.goal_weight_kg} kg`
+              : 'Log your weight and set a goal'}
           </div>
         </div>
         <span style={{ color: '#b0aa9c', fontSize: '15px' }}>›</span>

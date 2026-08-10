@@ -8,6 +8,7 @@ import { BodyWeightLog } from '@/types';
 import AppShell from '@/components/AppShell';
 import WeightRuler from '@/components/WeightRuler';
 import LoadingState from '@/components/LoadingState';
+import GoalWeightEditor from '@/components/GoalWeightEditor';
 import { buildTrendPath } from '@/lib/calculations';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
@@ -56,6 +57,17 @@ export default function WeightPage() {
     const latest = data.length ? data[data.length - 1].weight_kg : profileRes.data?.current_weight_kg;
     setWeight(latest ? Math.round(latest * 10) / 10 : 60);
     setLoading(false);
+  };
+
+  const handleSaveGoal = async (kg: number) => {
+    if (!userId) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('profiles')
+      .update({ goal_weight_kg: kg })
+      .eq('id', userId);
+    if (error) throw error;
+    setGoalWeight(kg);
   };
 
   const handleLog = async () => {
@@ -150,6 +162,14 @@ export default function WeightPage() {
           <p className="mt-3 text-center text-sm text-slate-900">{goalRing.rangeLabel}</p>
         </div>
       )}
+
+      {/* Always offered: without a goal there is no ring above, and until this
+          existed there was no way to set one anywhere in the app. */}
+      <GoalWeightEditor
+        goalWeight={goalWeight}
+        currentWeight={lastWeight}
+        onSave={handleSaveGoal}
+      />
 
       {deltaLabel && <p className="mt-5 text-center text-[13px] font-semibold text-slate-400">{deltaLabel}</p>}
 
