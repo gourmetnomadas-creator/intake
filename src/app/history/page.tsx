@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
-import { Meal, BodyWeightLog, Profile } from '@/types';
+import { Meal, BodyWeightLog, Profile, Supplement } from '@/types';
 import { formatTime, getMealTypeLabel } from '@/lib/utils';
 import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
 import AppShell from '@/components/AppShell';
@@ -28,6 +28,7 @@ export default function HistoryPage() {
   const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
   const [weightLogs, setWeightLogs] = useState<BodyWeightLog[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [review, setReview] = useState<{ headline: string; insights: string[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
 
@@ -45,7 +46,7 @@ export default function HistoryPage() {
   }, []);
 
   const loadMeals = async (supabase: any, userId: string) => {
-    const [{ data }, { data: weights }, { data: profileRow }] = await Promise.all([
+    const [{ data }, { data: weights }, { data: profileRow }, { data: supps }] = await Promise.all([
       supabase
         .from('meals')
         .select('*')
@@ -60,6 +61,9 @@ export default function HistoryPage() {
         .eq('user_id', userId)
         .order('date', { ascending: true }),
       supabase.from('profiles').select('*').eq('id', userId).single(),
+      // Fetched once here rather than by each day's card, which all render the
+      // same list.
+      supabase.from('supplements').select('*').eq('user_id', userId).order('created_at'),
     ]);
 
     if (data) {
@@ -68,6 +72,7 @@ export default function HistoryPage() {
     }
     setWeightLogs(weights || []);
     setProfile(profileRow ?? null);
+    setSupplements(supps || []);
     setLoading(false);
   };
 
@@ -481,7 +486,12 @@ export default function HistoryPage() {
               </div>
               {session && (
                 <div className="mt-3">
-                  <SupplementsCard userId={session.user.id} date={group.date} compact />
+                  <SupplementsCard
+                    userId={session.user.id}
+                    date={group.date}
+                    compact
+                    supplements={supplements}
+                  />
                 </div>
               )}
             </div>
