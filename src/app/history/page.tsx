@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
-import { Meal } from '@/types';
+import { Meal, BodyWeightLog, Profile } from '@/types';
 import { formatTime, getMealTypeLabel } from '@/lib/utils';
 import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
 import AppShell from '@/components/AppShell';
@@ -12,6 +12,7 @@ import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import SupplementsCard from '@/components/SupplementsCard';
+import GoalProgressCard from '@/components/GoalProgressCard';
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
@@ -25,6 +26,8 @@ export default function HistoryPage() {
   const [deleteTarget, setDeleteTarget] = useState<Meal | null>(null);
   const [session, setSession] = useState<any>(null);
   const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const [weightLogs, setWeightLogs] = useState<BodyWeightLog[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [review, setReview] = useState<{ headline: string; insights: string[] } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
 
@@ -42,17 +45,29 @@ export default function HistoryPage() {
   }, []);
 
   const loadMeals = async (supabase: any, userId: string) => {
-    const { data } = await supabase
-      .from('meals')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'saved')
-      .order('meal_time', { ascending: false });
+    const [{ data }, { data: weights }, { data: profileRow }] = await Promise.all([
+      supabase
+        .from('meals')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'saved')
+        .order('meal_time', { ascending: false }),
+      // The progress card needs weigh-ins and the goal, which this page did
+      // not previously load.
+      supabase
+        .from('body_weight_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: true }),
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+    ]);
 
     if (data) {
       setMeals(data);
       setFilteredMeals(data);
     }
+    setWeightLogs(weights || []);
+    setProfile(profileRow ?? null);
     setLoading(false);
   };
 
@@ -301,6 +316,10 @@ export default function HistoryPage() {
   return (
     <AppShell>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Meal history</h2>
+
+      {meals.length > 0 && (
+        <GoalProgressCard profile={profile} meals={meals} weightLogs={weightLogs} />
+      )}
 
       {meals.length > 0 && (
         <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
