@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
 import { requireUser } from '@/lib/api-auth';
+import { describeMacroGaps } from '@/lib/calculations';
 
-// Suggests the user's next meal from time of day, remaining daily budget,
-// dietary preferences, consumed foods today, and macro prioritization.
+// Suggests the user's next meal from where the day actually stands (which
+// meals are already logged, not just the clock), the room left in the calorie
+// budget, the signed macro gaps, and dietary preferences.
 export async function POST(request: NextRequest) {
   try {
     const unauth = await requireUser();
@@ -11,16 +13,21 @@ export async function POST(request: NextRequest) {
 
     const {
       mealType = 'meal',
-      remainingKcal,
+      isClosing = false,
+      minutesSinceLastMeal = null,
+      maxKcal = null,
+      targetKcal = null,
+      count = 3,
       remainingProtein,
       remainingCarbs,
       remainingFat,
-      mealCount,
       consumedToday = [],
       dietType,
       restrictions,
       recentFoods,
     } = await request.json();
+
+    const wanted = Math.min(3, Math.max(1, Math.round(Number(count) || 3)));
 
     const ai = await getAIClient();
     const model = getModel();
@@ -30,59 +37,69 @@ export async function POST(request: NextRequest) {
       : 'Diet: no restrictions (omnivore).';
     const avoidLine = restrictions ? `ALWAYS avoid (allergies/dislikes): ${restrictions}.` : '';
 
-    // Determine macro priorities: which is the biggest gap?
-    const macroDeficits = [
-      { name: 'protein', value: Math.max(0, remainingProtein ?? 0), priority: 1 },
-      { name: 'carbs', value: Math.max(0, remainingCarbs ?? 0), priority: 2 },
-      { name: 'fat', value: Math.max(0, remainingFat ?? 0), priority: 3 },
-    ].sort((a, b) => b.value - a.value);
+    // Signed gaps: a macro past its target has to be visible as an overshoot,
+    // not flattened into "nothing left to fill".
+    const macros = describeMacroGaps({
+      protein: remainingProtein ?? null,
+      carbs: remainingCarbs ?? null,
+      fat: remainingFat ?? null,
+    });
 
-    const topDeficit = macroDeficits[0];
-    const macroPriority = topDeficit.value > 0
-      ? `Priority: ${topDeficit.name.toUpperCase()} (${topDeficit.value}g short).`
-      : 'Balance macros within the remaining calories.';
+    const macroPriority = macros.priority
+      ? `Priority macro: ${macros.priority.toUpperCase()}.`
+      : 'No macro is meaningfully short — keep it light and balanced.';
+    const overLine = macros.over.length > 0
+      ? `Already over target: ${macros.over.join(', ')}. A suggestion that adds more of these is wrong.`
+      : '';
 
     const consumedLine = consumedToday.length > 0
       ? `Already eaten today: ${consumedToday.slice(0, 5).join(', ')}${consumedToday.length > 5 ? '...' : ''}.`
       : 'No meals logged yet.';
 
-    const mealCountContext = mealCount === 0
-      ? 'First meal of the day — energy + nutrients.'
-      : mealCount === 1
-      ? 'Second meal — vary it from the previous one.'
-      : mealCount >= 4
-      ? 'Last meal of the day — light and nutritious.'
-      : 'Mid-day meal — balance.';
+    const budgetLine = maxKcal !== null
+      ? `Calorie room: aim for about ${Math.round(targetKcal ?? maxKcal)} kcal, HARD MAXIMUM ${Math.round(maxKcal)} kcal per suggestion. Never exceed the maximum; coming in under it is fine.`
+      : 'No calorie goal set — keep portions ordinary.';
+
+    const stageLine = isClosing
+      ? `The main meals of the day are done (this slot is ${mealType}). Only a small close-out fits: a snack, a dessert or a piece of fruit — NOT another plate of food. Portions must be snack-sized.`
+      : `Next slot: ${mealType}. More meals may still follow today, so do not spend the whole remaining budget here.`;
+
+    const sinceLine = typeof minutesSinceLastMeal === 'number'
+      ? `Last meal was logged ${minutesSinceLastMeal} minutes ago.${minutesSinceLastMeal < 90 ? ' They just ate, so suggest something light they can have soon.' : ''}`
+      : '';
 
     const completion = await ai.chat.completions.create({
       model,
       messages: [
         {
           role: 'system',
-          content: `You are Intake's nutrition assistant. You suggest 3 meals for the user's NEXT meal, prioritising closing their nutritional gaps for the day.
+          content: `You are Intake's nutrition assistant. You suggest what the user should eat next, sized to where their day actually stands and prioritising the gaps they still have to close.
 
 LANGUAGE: every title, description and "why" must be written in English. The meals the user logged may be written in another language — translate those dishes into English rather than echoing the words back. This holds no matter what language the context below is in.
 
-JSON RESPONSE: {"suggestions":[{"title":"name","description":"ingredients and grams, ready to log","kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"why":"WHY this meal today (e.g. 'You're 20g short on protein — this adds 22g')","repeat":boolean}]}
+JSON RESPONSE: {"suggestions":[{"title":"name","description":"ingredients and grams, ready to log","kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"why":"WHY this today (e.g. 'You're 20g short on protein — this adds 22g')","repeat":boolean}]}
 
 STRICT RULES:
-1. Exactly 3 suggestions.
-2. One MUST be a repeat (something they already eat: repeat:true).
-3. The other two must be DIFFERENT from each other AND from what they already ate today (repeat:false).
-4. NEVER INCLUDE ingredients from the avoid list.
-5. Strictly respect the stated diet.
-6. Each meal must fit within the remaining calories.
-7. The "why" must explain which specific macro it addresses or what variety it adds.
+1. Exactly ${wanted} suggestion${wanted === 1 ? '' : 's'}, all different from each other and from what they already ate today.
+2. A repeat of something they habitually eat (repeat:true) is welcome as the first one, but ONLY if it genuinely fits the calorie room and the macro gaps at this point of the day. If nothing habitual fits, return only new options — never stretch or shrink a habitual meal into something the user would not recognise. Mark everything else repeat:false.
+3. NEVER INCLUDE ingredients from the avoid list.
+4. Strictly respect the stated diet.
+5. The portions you write must genuinely add up to the kcal and macros you report, and must stay under the hard maximum. Do not pad a small portion up to the remaining calories.
+6. Never suggest more of a macro that is already over target.
+7. The "why" must explain which specific gap it addresses, and say so honestly when the point is simply that little is left to close.
 8. Realistic ingredients for home cooking.`,
         },
         {
           role: 'user',
           content: `TODAY'S CONTEXT:
-Time of day: ${mealType} (${mealCountContext}).
-Remaining calories: ${Math.max(0, Math.round(remainingKcal ?? 0))} kcal.
+${stageLine}
+${sinceLine}
+${budgetLine}
+
+MACRO GAPS (target minus eaten):
+${macros.lines.length > 0 ? macros.lines.join('\n') : 'No macro targets set.'}
 ${macroPriority}
-Remaining carbs: ${Math.max(0, Math.round(remainingCarbs ?? 0))}g.
-Remaining fat: ${Math.max(0, Math.round(remainingFat ?? 0))}g.
+${overLine}
 
 ${dietLine}
 ${avoidLine}
@@ -92,8 +109,8 @@ ${consumedLine}
 Meals the user usually eats: ${recentFoods || '(no history yet)'}.
 
 INSTRUCTIONS:
-- 1st suggestion: a favourite/habitual meal (repeat:true) that addresses the gaps.
-- 2nd and 3rd: new options the user has not eaten today, one focused on the macro gap, one on variety.
+- Give ${wanted} option${wanted === 1 ? '' : 's'} for this slot, sized to the calorie room above.
+- Lead with a habitual meal only if it fits as-is; otherwise give new options, one aimed at the priority macro and one at variety.
 - Answer in English, including any dish above that is written in another language.`,
         },
       ],
@@ -107,7 +124,7 @@ INSTRUCTIONS:
     }
 
     const result = JSON.parse(extractJson(text));
-    const suggestions = Array.isArray(result.suggestions) ? result.suggestions.slice(0, 3) : [];
+    const suggestions = Array.isArray(result.suggestions) ? result.suggestions.slice(0, wanted) : [];
     return NextResponse.json({ suggestions });
   } catch (error: any) {
     console.error('Suggest meal error:', error);

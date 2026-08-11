@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { suggestionBudget, suggestionContext } from '@/lib/calculations';
 
 interface Suggestion {
   title: string;
@@ -21,18 +22,11 @@ interface Props {
   remainingProtein: number | null;
   remainingCarbs: number | null;
   remainingFat: number | null;
-  mealCount: number;
+  loggedMealTypes: string[];
+  lastMealAt: string | null;
   consumedToday: string[];
   dietType: string | null;
   restrictions: string | null;
-}
-
-function mealTypeForNow(): string {
-  const h = new Date().getHours();
-  if (h < 11) return 'desayuno';
-  if (h < 15) return 'almuerzo';
-  if (h < 19) return 'merienda / snack';
-  return 'cena';
 }
 
 export default function SuggestMealCard({
@@ -41,7 +35,8 @@ export default function SuggestMealCard({
   remainingProtein,
   remainingCarbs,
   remainingFat,
-  mealCount,
+  loggedMealTypes,
+  lastMealAt,
   consumedToday,
   dietType,
   restrictions,
@@ -50,6 +45,11 @@ export default function SuggestMealCard({
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
   const [open, setOpen] = useState(true);
+
+  // Where the day stands, from the meals already logged and the clock — the
+  // clock alone would offer dinner at 19:00 to someone who just ate dinner.
+  const context = suggestionContext({ loggedMealTypes, lastMealAt });
+  const budget = suggestionBudget(remainingKcal, context);
 
   const generate = async () => {
     setLoading(true);
@@ -75,12 +75,15 @@ export default function SuggestMealCard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mealType: mealTypeForNow(),
-          remainingKcal,
+          mealType: context.mealType,
+          isClosing: context.isClosing,
+          minutesSinceLastMeal: context.minutesSinceLastMeal,
+          maxKcal: budget.maxKcal,
+          targetKcal: budget.targetKcal,
+          count: budget.count,
           remainingProtein,
           remainingCarbs,
           remainingFat,
-          mealCount,
           consumedToday,
           dietType,
           restrictions,
@@ -104,6 +107,15 @@ export default function SuggestMealCard({
     router.push(`/meals/new?description=${encodeURIComponent(s.description)}`);
   };
 
+  // Chasing the last few calories with a whole extra meal is worse advice than
+  // saying nothing, so say nothing — and offer a light option only on request.
+  const closingNote =
+    budget.count === 0
+      ? "You've covered today's calories — nothing left to close."
+      : context.isClosing
+      ? `Only ${budget.maxKcal} kcal left and your main meals are done — you don't need another meal. Tap Suggest if you want something light.`
+      : `Only ${budget.maxKcal} kcal left — you don't need a full meal. Tap Suggest if you want something light.`;
+
   return (
     <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
@@ -123,18 +135,27 @@ export default function SuggestMealCard({
             </svg>
           )}
         </button>
-        <button
-          onClick={generate}
-          disabled={loading}
-          className="flex-shrink-0 rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
-        >
-          {loading ? 'Thinking…' : suggestions ? 'Refresh' : 'Suggest'}
-        </button>
+        {budget.count > 0 && (
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="flex-shrink-0 rounded-full bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+          >
+            {loading ? 'Thinking…' : suggestions ? 'Refresh' : 'Suggest'}
+          </button>
+        )}
       </div>
-      {!suggestions && !loading && (
+
+      {budget.nothingNeeded && (
+        <p className="mt-2 text-xs text-slate-500">
+          {closingNote}
+        </p>
+      )}
+
+      {!suggestions && !loading && budget.count > 0 && !budget.nothingNeeded && (
         <p className="mt-2 text-xs text-slate-400">
-          AI suggests your next meal from the time of day, what you still have left today, and
-          your dietary preferences.
+          AI suggests what to eat next from where your day stands, the room left in your budget,
+          and your dietary preferences.
         </p>
       )}
 
