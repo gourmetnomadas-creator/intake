@@ -108,8 +108,8 @@ function AddMealInner() {
     }
   };
 
-  // mealType comes from the confirmation modal rather than formData: it is
-  // easy to leave the form's default in place while focused on the photo.
+  // The confirmation modal is where the meal type is actually chosen; the one
+  // in formData is only the suggestion it opens preselected on.
   const handleSave = async (mealType: MealType) => {
     if (!formData || !session) return;
     setSaving(true);
