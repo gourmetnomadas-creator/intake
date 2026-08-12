@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { MEAL_TYPES, MealType } from '@/types';
 
 interface MealTypeModalProps {
-  // What the meal is currently filed as, so the pre-selection is visible.
+  // The slot this meal most likely fills, preselected so confirming is one tap.
   current: MealType;
   saving: boolean;
   onSelect: (mealType: MealType) => void;
@@ -57,7 +57,7 @@ export default function MealTypeModal({
             >
               {type}
               {type === current && (
-                <span className="text-xs font-normal opacity-80">selected earlier</span>
+                <span className="text-xs font-normal opacity-80">suggested</span>
               )}
             </button>
           ))}

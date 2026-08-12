@@ -12,6 +12,10 @@ import {
   logsInRange,
   buildTrendPath,
   suggestNextMealType,
+  suggestionContext,
+  suggestionBudget,
+  describeMacroGaps,
+  CLOSE_ENOUGH_KCAL,
 } from '../src/lib/calculations';
 import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
 import { buildMarkdownReport } from '../src/lib/export-report';
@@ -133,6 +137,151 @@ describe('suggestNextMealType', () => {
 
   it('is unfazed by meal types outside the sequence', () => {
     expect(suggestNextMealType(['breakfast', 'brunch'])).toBe('snack');
+  });
+});
+
+describe('suggestionContext', () => {
+  const at = (hour: number, minute = 0) => new Date(2026, 7, 11, hour, minute);
+
+  it('does not offer dinner to someone who just ate dinner', () => {
+    // The bug this guards: the card read the clock only, so 18:59 meant
+    // "dinner" even with dinner already on the plate behind you.
+    const ctx = suggestionContext({
+      loggedMealTypes: ['breakfast', 'lunch', 'dinner'],
+      now: at(18, 59),
+    });
+
+    expect(ctx.isClosing).toBe(true);
+    expect(ctx.mealType).toBe('dessert');
+    expect(ctx.mealsLeftToday).toBe(1);
+  });
+
+  it('falls back to a snack once dessert is logged too', () => {
+    const ctx = suggestionContext({
+      loggedMealTypes: ['dinner', 'dessert'],
+      now: at(21, 30),
+    });
+    expect(ctx.mealType).toBe('snack');
+  });
+
+  it('closes the day late even without a dinner logged', () => {
+    const ctx = suggestionContext({ loggedMealTypes: ['breakfast'], now: at(22) });
+    expect(ctx.isClosing).toBe(true);
+  });
+
+  it('offers the meal the clock is on when it is still free', () => {
+    const ctx = suggestionContext({ loggedMealTypes: ['breakfast'], now: at(13) });
+    expect(ctx.isClosing).toBe(false);
+    expect(ctx.mealType).toBe('lunch');
+    // Lunch and dinner still ahead.
+    expect(ctx.mealsLeftToday).toBe(2);
+  });
+
+  it('offers a snack when the main meal for this hour is already logged', () => {
+    const ctx = suggestionContext({
+      loggedMealTypes: ['breakfast', 'lunch'],
+      now: at(16),
+    });
+    expect(ctx.mealType).toBe('snack');
+    expect(ctx.isClosing).toBe(false);
+  });
+
+  it('starts a bare day at breakfast', () => {
+    const ctx = suggestionContext({ loggedMealTypes: [], now: at(8) });
+    expect(ctx.mealType).toBe('breakfast');
+    expect(ctx.mealsLeftToday).toBe(3);
+  });
+
+  it('reports how long ago the last meal was', () => {
+    const ctx = suggestionContext({
+      loggedMealTypes: ['dinner'],
+      lastMealAt: at(18, 30).toISOString(),
+      now: at(19),
+    });
+    expect(ctx.minutesSinceLastMeal).toBe(30);
+  });
+
+  it('reports no elapsed time for a missing or unusable timestamp', () => {
+    const now = at(19);
+    expect(suggestionContext({ loggedMealTypes: [], now }).minutesSinceLastMeal).toBeNull();
+    expect(
+      suggestionContext({ loggedMealTypes: [], lastMealAt: 'not a date', now }).minutesSinceLastMeal
+    ).toBeNull();
+    expect(
+      suggestionContext({ loggedMealTypes: [], lastMealAt: at(20).toISOString(), now })
+        .minutesSinceLastMeal
+    ).toBeNull();
+  });
+});
+
+describe('suggestionBudget', () => {
+  const closing = { isClosing: true, mealsLeftToday: 1 };
+  const midDay = { isClosing: false, mealsLeftToday: 2 };
+
+  it('suggests nothing at all once the goal is covered', () => {
+    const budget = suggestionBudget(0, closing);
+    expect(budget.count).toBe(0);
+    expect(budget.nothingNeeded).toBe(true);
+    expect(suggestionBudget(-200, midDay).count).toBe(0);
+  });
+
+  it('says a small gap does not need a meal, but still offers a light option', () => {
+    const budget = suggestionBudget(CLOSE_ENOUGH_KCAL - 1, closing);
+    expect(budget.nothingNeeded).toBe(true);
+    expect(budget.count).toBe(2);
+    expect(budget.maxKcal).toBe(CLOSE_ENOUGH_KCAL - 1);
+  });
+
+  it('caps a close-out at the calories actually left', () => {
+    // The 323 kcal left after dinner: a close-out, not a second dinner.
+    const budget = suggestionBudget(323, closing);
+    expect(budget.nothingNeeded).toBe(false);
+    expect(budget.maxKcal).toBe(323);
+    expect(budget.targetKcal).toBe(323);
+  });
+
+  it('shares the gap across the meals still to come', () => {
+    const budget = suggestionBudget(1200, midDay);
+    expect(budget.targetKcal).toBe(600);
+    expect(budget.maxKcal).toBe(1200);
+  });
+
+  it('leaves portions unconstrained when there is no calorie goal', () => {
+    const budget = suggestionBudget(null, midDay);
+    expect(budget.maxKcal).toBeNull();
+    expect(budget.count).toBe(3);
+    expect(budget.nothingNeeded).toBe(false);
+  });
+});
+
+describe('describeMacroGaps', () => {
+  it('flags a macro that is over target instead of hiding it', () => {
+    // The bug this guards: clamping gaps at zero made 32 g of extra protein
+    // read exactly like protein landing on target.
+    const summary = describeMacroGaps({ protein: -32, carbs: 45, fat: 0 });
+
+    expect(summary.over).toEqual(['protein']);
+    expect(summary.lines.some((l) => /protein: 32 g OVER/.test(l))).toBe(true);
+    expect(summary.priority).toBe('carbs');
+  });
+
+  it('treats a few grams either way as on target', () => {
+    const summary = describeMacroGaps({ protein: 3, carbs: -4, fat: 0 });
+    expect(summary.over).toEqual([]);
+    expect(summary.priority).toBeNull();
+    expect(summary.lines).toHaveLength(3);
+    expect(summary.lines.every((l) => /on target/.test(l))).toBe(true);
+  });
+
+  it('picks the largest shortfall as the priority', () => {
+    expect(describeMacroGaps({ protein: 20, carbs: 60, fat: 10 }).priority).toBe('carbs');
+    expect(describeMacroGaps({ protein: 40, carbs: 12, fat: 10 }).priority).toBe('protein');
+  });
+
+  it('skips macros with no target to compare against', () => {
+    const summary = describeMacroGaps({ protein: null, carbs: 30, fat: null });
+    expect(summary.lines).toHaveLength(1);
+    expect(summary.lines[0]).toMatch(/carbs/);
   });
 });
 

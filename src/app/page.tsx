@@ -169,7 +169,8 @@ export default function TodayDashboard() {
           remainingProtein={remainingProtein}
           remainingCarbs={remainingCarbs}
           remainingFat={remainingFat}
-          mealCount={meals.length}
+          loggedMealTypes={meals.map((m) => m.meal_type)}
+          lastMealAt={meals.length > 0 ? meals[meals.length - 1].meal_time : null}
           consumedToday={meals.map(m => m.description).filter(Boolean) as string[]}
           dietType={profile?.diet_type ?? null}
           restrictions={profile?.dietary_restrictions ?? null}

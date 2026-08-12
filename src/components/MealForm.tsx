@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import MealPhotoInput from './MealPhotoInput';
 import VoiceDescriptionInput from './VoiceDescriptionInput';
-import { MEAL_TYPES, MealType, WeightContext, Meal } from '@/types';
+import { MealType, WeightContext, Meal } from '@/types';
 import { suggestNextMealType } from '@/lib/calculations';
 
 interface MealFormProps {
@@ -24,15 +24,13 @@ const today = () => new Date().toISOString().split('T')[0];
 
 export default function MealForm({ onSubmit, loading, initialDescription = '', todayMeals = [] }: MealFormProps) {
   const [description, setDescription] = useState(initialDescription);
-  const suggestedMealType = useMemo(
+  // Which meal this is gets asked once, in the confirmation modal after the
+  // analysis. This is only the seed for the option preselected there, so it
+  // rides along silently rather than as a second set of buttons here.
+  const mealType = useMemo(
     () => suggestNextMealType(todayMeals.map((m) => m.meal_type)),
     [todayMeals]
   );
-  // Null until the user picks one. Today's meals arrive after this mounts, so
-  // a useState default would freeze the suggestion at breakfast; deferring to
-  // suggestedMealType lets it catch up without overriding a deliberate choice.
-  const [pickedMealType, setPickedMealType] = useState<MealType | null>(null);
-  const mealType = pickedMealType ?? suggestedMealType;
   const [date, setDate] = useState(today());
   const [totalWeightGrams, setTotalWeightGrams] = useState('');
   const [weightContext, setWeightContext] = useState<WeightContext>('whole_plate');
@@ -62,26 +60,6 @@ export default function MealForm({ onSubmit, loading, initialDescription = '', t
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Meal type</label>
-        <div className="grid grid-cols-3 gap-2">
-          {MEAL_TYPES.map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setPickedMealType(type)}
-              className={`rounded-lg py-2 text-sm font-medium capitalize transition ${
-                mealType === type
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
           Date{date !== today() ? ' (logging a past day)' : ''}

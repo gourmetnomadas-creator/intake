@@ -33,6 +33,181 @@ export function suggestNextMealType(loggedMealTypes: string[]): MealType {
   return 'snack';
 }
 
+/**
+ * The hours of the day each main meal normally falls in. The gaps between
+ * them (15:00–19:00 here) belong to snacks, not to the next main meal.
+ */
+const MAIN_MEAL_WINDOWS: readonly { type: MealType; fromHour: number; endsAtHour: number }[] = [
+  { type: 'breakfast', fromHour: 0, endsAtHour: 11 },
+  { type: 'lunch', fromHour: 11, endsAtHour: 15 },
+  { type: 'dinner', fromHour: 19, endsAtHour: 24 },
+];
+
+/** The hour from which the day counts as closing even without a dinner logged. */
+const LATE_HOUR = 21;
+
+/**
+ * A calorie gap this small is noise: hitting it exactly matters less than not
+ * eating a whole extra meal to chase it.
+ */
+export const CLOSE_ENOUGH_KCAL = 150;
+
+export interface SuggestionContext {
+  /** The slot a suggestion should fill. */
+  mealType: MealType;
+  /** Dinner is logged, or it is late: only a light close-out still fits. */
+  isClosing: boolean;
+  /** Minutes since the last meal was logged, when that is known. */
+  minutesSinceLastMeal: number | null;
+  /** Main meals still ahead today, this one included. Never below 1. */
+  mealsLeftToday: number;
+}
+
+function minutesSince(at: string | Date | null | undefined, now: Date): number | null {
+  if (!at) return null;
+  const then = at instanceof Date ? at : new Date(at);
+  if (isNaN(then.getTime())) return null;
+  const minutes = Math.round((now.getTime() - then.getTime()) / 60000);
+  return minutes < 0 ? null : minutes;
+}
+
+/**
+ * What the next suggestion should be aiming at, from the meals already logged
+ * and the clock — the two together, since neither alone is enough. The clock
+ * says dinner at 19:00 even when dinner is already eaten, and the logged meals
+ * say "second snack" at 19:00 for someone who only had breakfast.
+ */
+export function suggestionContext(input: {
+  loggedMealTypes: string[];
+  lastMealAt?: string | Date | null;
+  now?: Date;
+}): SuggestionContext {
+  const now = input.now ?? new Date();
+  const hour = now.getHours();
+  const logged = new Set(input.loggedMealTypes);
+
+  const isClosing = logged.has('dinner') || hour >= LATE_HOUR;
+
+  // Once the day is closing there is no main meal left to suggest, only
+  // something small: dessert if it is still free, otherwise a snack.
+  let mealType: MealType;
+  if (isClosing) {
+    mealType = logged.has('dessert') ? 'snack' : 'dessert';
+  } else {
+    // Between two main meals, or on one that is already logged, anything the
+    // user eats now is a snack.
+    const current = MAIN_MEAL_WINDOWS.find((w) => hour >= w.fromHour && hour < w.endsAtHour);
+    mealType = current && !logged.has(current.type) ? current.type : 'snack';
+  }
+
+  const mealsLeftToday = isClosing
+    ? 1
+    : Math.max(1, MAIN_MEAL_WINDOWS.filter((w) => hour < w.endsAtHour && !logged.has(w.type)).length);
+
+  return {
+    mealType,
+    isClosing,
+    minutesSinceLastMeal: minutesSince(input.lastMealAt, now),
+    mealsLeftToday,
+  };
+}
+
+export interface SuggestionBudget {
+  /** Hard ceiling for a single suggestion. Null when there is no calorie goal. */
+  maxKcal: number | null;
+  /** The size to aim for: the gap shared across the meals still to come. */
+  targetKcal: number | null;
+  /** The goal is met, or close enough that another meal is not needed. */
+  nothingNeeded: boolean;
+  /** How many suggestions are worth showing. Zero means: suggest nothing. */
+  count: number;
+}
+
+/**
+ * How much room a suggestion has. Without this the model is only told "fit
+ * within the remaining calories", which it reads as "spend all of them" — a
+ * full plate at 19:00 for a 300 kcal gap left after dinner.
+ */
+export function suggestionBudget(
+  remainingKcal: number | null,
+  context: Pick<SuggestionContext, 'isClosing' | 'mealsLeftToday'>
+): SuggestionBudget {
+  if (remainingKcal === null) {
+    return { maxKcal: null, targetKcal: null, nothingNeeded: false, count: 3 };
+  }
+
+  if (remainingKcal <= 0) {
+    return { maxKcal: 0, targetKcal: 0, nothingNeeded: true, count: 0 };
+  }
+
+  const maxKcal = Math.round(remainingKcal);
+
+  if (remainingKcal < CLOSE_ENOUGH_KCAL) {
+    // Worth offering something for whoever is actually hungry, but not a menu.
+    return { maxKcal, targetKcal: maxKcal, nothingNeeded: true, count: 2 };
+  }
+
+  return {
+    maxKcal,
+    targetKcal: Math.round(remainingKcal / context.mealsLeftToday),
+    nothingNeeded: false,
+    count: 3,
+  };
+}
+
+export interface MacroGaps {
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}
+
+export interface MacroGapSummary {
+  /** One line per known macro, ready to drop into a prompt. */
+  lines: string[];
+  /** The macro furthest below target, if any is meaningfully short. */
+  priority: string | null;
+  /** Macros already past target. Adding more of these is the wrong answer. */
+  over: string[];
+}
+
+/** Grams either way that count as "on target" rather than short or over. */
+const MACRO_TOLERANCE_G = 5;
+
+/**
+ * Turn signed macro gaps (target minus consumed) into prompt lines. Clamping
+ * these at zero, as the API used to, hides every overshoot: a day 32 g past
+ * its protein target looks exactly like one that hit it.
+ */
+export function describeMacroGaps(gaps: MacroGaps): MacroGapSummary {
+  const lines: string[] = [];
+  const over: string[] = [];
+  let priority: string | null = null;
+  let priorityGap = MACRO_TOLERANCE_G;
+
+  for (const name of ['protein', 'carbs', 'fat'] as const) {
+    const gap = gaps[name];
+    if (gap === null || gap === undefined || isNaN(gap)) continue;
+
+    const grams = Math.round(gap);
+    if (grams > MACRO_TOLERANCE_G) {
+      lines.push(`${name}: ${grams} g short of target.`);
+      if (grams > priorityGap) {
+        priority = name;
+        priorityGap = grams;
+      }
+    } else if (grams < -MACRO_TOLERANCE_G) {
+      over.push(name);
+      lines.push(
+        `${name}: ${Math.abs(grams)} g OVER target — do not add ${name}-heavy foods.`
+      );
+    } else {
+      lines.push(`${name}: on target.`);
+    }
+  }
+
+  return { lines, priority, over };
+}
+
 export interface NutritionPer100g {
   kcalPer100g: number;
   proteinPer100g: number;
