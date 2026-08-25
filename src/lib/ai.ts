@@ -17,11 +17,16 @@ export async function getAIClient() {
         apiKey: GEMINI_API_KEY,
         baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
       });
-    } else {
+    } else if (AI_PROVIDER === 'deepseek' && DEEPSEEK_API_KEY) {
       _ai = new OpenAI({
-        apiKey: DEEPSEEK_API_KEY || '',
+        apiKey: DEEPSEEK_API_KEY,
         baseURL: 'https://api.deepseek.com',
       });
+    } else {
+      throw new Error(
+        `AI configuration error: AI_PROVIDER="${AI_PROVIDER}" but no API key found. ` +
+        `Configure ${AI_PROVIDER.toUpperCase()}_API_KEY in environment variables.`
+      );
     }
   }
   return _ai;
