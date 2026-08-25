@@ -3,6 +3,10 @@ import { transcribeSchema } from '@/lib/validations';
 import { getAIClient, getModel, supportsAudio } from '@/lib/ai';
 import { requireUser } from '@/lib/api-auth';
 
+// Uploading and transcribing a clip is slow for the same reason photo analysis
+// is; see the note in analyze-meal.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const unauth = await requireUser();
