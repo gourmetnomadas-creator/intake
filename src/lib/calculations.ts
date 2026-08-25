@@ -16,20 +16,29 @@ export const MEAL_TYPE_SEQUENCE: readonly MealType[] = [
  *
  * Each logged meal claims one slot in the sequence, so a day that already has
  * one snack still goes on to offer the second. Once every slot is claimed,
- * anything further is most likely a snack.
+ * anything further is most likely a snack. Robust to meal order — meals can be
+ * logged out of order and still match correctly with sequence slots.
  */
 export function suggestNextMealType(loggedMealTypes: string[]): MealType {
-  const unclaimed = new Map<string, number>();
-  for (const type of loggedMealTypes) {
-    unclaimed.set(type, (unclaimed.get(type) ?? 0) + 1);
+  // Track which logged meals have been matched to sequence slots.
+  const loggedSet = new Set(loggedMealTypes);
+  const matched = new Array(loggedMealTypes.length).fill(false);
+
+  // For each slot in the sequence, greedily match it to a logged meal.
+  for (const slotType of MEAL_TYPE_SEQUENCE) {
+    // Find the first unmatched logged meal of this type.
+    const loggedIndex = loggedMealTypes.findIndex(
+      (type, i) => type === slotType && !matched[i]
+    );
+    if (loggedIndex === -1) {
+      // This slot is empty, so suggest it.
+      return slotType;
+    }
+    // Mark this meal as matched to this slot.
+    matched[loggedIndex] = true;
   }
 
-  for (const type of MEAL_TYPE_SEQUENCE) {
-    const remaining = unclaimed.get(type) ?? 0;
-    if (remaining === 0) return type;
-    unclaimed.set(type, remaining - 1);
-  }
-
+  // All sequence slots are claimed, suggest additional snacks.
   return 'snack';
 }
 

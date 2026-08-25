@@ -126,12 +126,22 @@ function AddMealInner() {
       { totalKcal: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
     );
 
+    // Set meal_time explicitly: for today use current time, for past days use
+    // noon of that date to preserve correct meal ordering when sorting by time.
+    const now = new Date();
+    const mealDate = new Date(formData.date);
+    const isToday = formData.date === today;
+    const mealTime = isToday
+      ? now.toISOString()
+      : new Date(mealDate.getFullYear(), mealDate.getMonth(), mealDate.getDate(), 12, 0, 0).toISOString();
+
     const { data: meal, error: mealError } = await supabase
       .from('meals')
       .insert({
         user_id: session.user.id,
         date: formData.date,
         meal_type: mealType,
+        meal_time: mealTime,
         description: formData.description,
         total_weight_g: formData.totalWeightGrams,
         weight_context: formData.weightContext,
