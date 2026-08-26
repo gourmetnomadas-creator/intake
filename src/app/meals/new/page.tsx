@@ -87,14 +87,20 @@ function AddMealInner() {
       // time, so this is a few hundred KB rather than the multi-MB original
       // that used to overrun the request-size limit. The server drops it again
       // if the configured AI model can't read images.
+      // Give up on our own terms. Without this the button sat on "Analyzing…"
+      // for as long as the request took to die, which on a killed function is
+      // until the browser gives up — with nothing to show for the wait.
+      const timeout = AbortSignal.timeout(70_000);
+
       const res = await fetch('/api/analyze-meal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        signal: timeout,
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Analysis failed');
       }
 
@@ -102,7 +108,14 @@ function AddMealInner() {
       setAnalysis(result);
       setEditableItems(result.items);
     } catch (err: any) {
-      alert(err.message || 'Could not analyze meal. Please try again or add ingredients manually.');
+      // A timeout or a dropped connection arrives with no message worth
+      // showing, so say what happened rather than leaving the user guessing.
+      const dropped = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+      alert(
+        dropped
+          ? 'The analysis took too long and was stopped. Your photo and description are still here — try again, or add the ingredients manually.'
+          : err?.message || 'Could not analyze meal. Please try again or add ingredients manually.'
+      );
     } finally {
       setLoading(false);
     }

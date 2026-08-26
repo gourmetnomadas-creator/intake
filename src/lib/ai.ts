@@ -7,20 +7,31 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 let _ai: any = null;
 
+// A call that hangs is worse than one that fails: the function gets killed by
+// the platform mid-flight and the browser sees a dropped connection instead of
+// a message it can show. Cap each attempt, and allow one retry, so the worst
+// case stays inside the routes' 60s maxDuration and the route gets to answer.
+const REQUEST_TIMEOUT_MS = 25_000;
+const MAX_RETRIES = 1;
+
 export async function getAIClient() {
   if (!_ai) {
     const { default: OpenAI } = await import('openai');
     if (AI_PROVIDER === 'openai' && OPENAI_API_KEY) {
-      _ai = new OpenAI({ apiKey: OPENAI_API_KEY });
+      _ai = new OpenAI({ apiKey: OPENAI_API_KEY, timeout: REQUEST_TIMEOUT_MS, maxRetries: MAX_RETRIES });
     } else if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) {
       _ai = new OpenAI({
         apiKey: GEMINI_API_KEY,
         baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
       });
     } else if (AI_PROVIDER === 'deepseek' && DEEPSEEK_API_KEY) {
       _ai = new OpenAI({
         apiKey: DEEPSEEK_API_KEY,
         baseURL: 'https://api.deepseek.com',
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
       });
     } else {
       throw new Error(
