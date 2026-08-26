@@ -3,6 +3,13 @@ import { analyzeMealSchema } from '@/lib/validations';
 import { getAIClient, getModel, supportsJsonMode, supportsVision, extractJson } from '@/lib/ai';
 import { requireUser } from '@/lib/api-auth';
 
+// Reading a photo takes a vision model well past Vercel's default function
+// timeout (10s), which kills the request mid-flight: the browser sees the
+// connection drop rather than an error, so the button sits on "Analyzing…"
+// until fetch finally rejects with "Load failed". Text-only meals answer fast
+// enough to slip under the default, which is why only photos appeared broken.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const unauth = await requireUser();
@@ -142,9 +149,23 @@ Return ONLY valid JSON in this exact format:
     });
   } catch (error) {
     console.error('Analyze meal error:', error);
+
+    // The generic message hid every cause behind the same sentence, so a spent
+    // daily quota, a retired model alias and a dropped connection all looked
+    // identical from the phone. Name the cause the user can act on.
+    const status = (error as { status?: number })?.status;
+    const detail =
+      status === 429
+        ? " The AI provider's quota for today is used up — it resets tomorrow."
+        : status === 404
+          ? ' The configured AI model is no longer available.'
+          : status === 401 || status === 403
+            ? " The AI provider rejected the app's API key."
+            : '';
+
     return NextResponse.json(
       {
-        error: 'Could not analyze meal. Please try again or add ingredients manually.',
+        error: `Could not analyze meal.${detail} Please try again or add ingredients manually.`,
       },
       { status: 500 }
     );
