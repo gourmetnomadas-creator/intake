@@ -81,10 +81,11 @@ function AddMealInner() {
   }) => {
     setLoading(true);
     setFormData(data);
+    const startedAt = Date.now();
 
     try {
       // The photo is safe to POST now: MealPhotoInput downscales it at capture
-      // time, so this is a few hundred KB rather than the multi-MB original
+      // time, so this is a hundred KB or so rather than the multi-MB original
       // that used to overrun the request-size limit. The server drops it again
       // if the configured AI model can't read images.
       // Give up on our own terms. Without this the button sat on "Analyzing…"
@@ -110,11 +111,15 @@ function AddMealInner() {
     } catch (err: any) {
       // A timeout or a dropped connection arrives with no message worth
       // showing, so say what happened rather than leaving the user guessing.
+      // The elapsed seconds ride along because they are the one clue that
+      // separates a slow upload from a slow analysis, and nothing else in
+      // this failure is visible from the phone.
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
       const dropped = err?.name === 'TimeoutError' || err?.name === 'AbortError';
       alert(
         dropped
-          ? 'The analysis took too long and was stopped. Your photo and description are still here — try again, or add the ingredients manually.'
-          : err?.message || 'Could not analyze meal. Please try again or add ingredients manually.'
+          ? `The analysis was stopped after ${seconds}s. Your photo and description are still here — try again, or add the ingredients manually.`
+          : `${err?.message || 'Could not analyze meal. Please try again or add ingredients manually.'} (${seconds}s)`
       );
     } finally {
       setLoading(false);
