@@ -3,8 +3,13 @@
 // match the expected pattern" (see commit 7443503). Shrinking the picture at
 // capture time keeps every later step — preview, state, upload — small.
 
-export const MAX_IMAGE_DIMENSION = 1024;
-export const IMAGE_QUALITY = 0.8;
+// 1024px at quality 0.8 produced 150-350 KB of base64. Over a phone's uplink
+// that upload is a slow first leg the analysis budget has to pay for before
+// the function even starts, and the vision model then reads every one of those
+// pixels. 768px is what the model tiles images to anyway, so the smaller
+// picture costs no accuracy on a plate of food and roughly halves both legs.
+export const MAX_IMAGE_DIMENSION = 768;
+export const IMAGE_QUALITY = 0.7;
 
 interface DecodedImage {
   image: CanvasImageSource;

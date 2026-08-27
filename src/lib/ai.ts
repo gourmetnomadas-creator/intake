@@ -9,10 +9,11 @@ let _ai: any = null;
 
 // A call that hangs is worse than one that fails: the function gets killed by
 // the platform mid-flight and the browser sees a dropped connection instead of
-// a message it can show. Cap each attempt, and allow one retry, so the worst
-// case stays inside the routes' 60s maxDuration and the route gets to answer.
+// a message it can show. The retry was the thing that broke that promise — two
+// attempts of 25s plus the photo upload ran past the 60s the function has, so
+// it died with nothing to say. One attempt always leaves room to answer.
 const REQUEST_TIMEOUT_MS = 25_000;
-const MAX_RETRIES = 1;
+const MAX_RETRIES = 0;
 
 export async function getAIClient() {
   if (!_ai) {

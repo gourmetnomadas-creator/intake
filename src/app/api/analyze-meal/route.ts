@@ -117,12 +117,19 @@ Return ONLY valid JSON in this exact format:
       { role: 'user', content: userContent },
     ];
 
+    // Timing is the only way to tell a slow model from a slow upload once this
+    // is running on a phone, where neither is visible.
+    const startedAt = Date.now();
     const completion = await ai.chat.completions.create({
       model,
       messages,
       temperature: 0.3,
       ...(supportsJsonMode(model) ? { response_format: { type: 'json_object' } } : {}),
     });
+    console.log(
+      `analyze-meal: ${model} answered in ${Date.now() - startedAt}ms ` +
+        `(photo: ${analyzingPhoto ? `${Math.round((imageBase64?.length ?? 0) / 1024)}KB` : 'none'})`
+    );
 
     let text = completion.choices[0]?.message?.content;
     if (!text) {
