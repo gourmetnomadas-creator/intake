@@ -168,7 +168,12 @@ Return ONLY valid JSON in this exact format:
           ? ' The configured AI model is no longer available.'
           : status === 401 || status === 403
             ? " The AI provider rejected the app's API key."
-            : '';
+            // A 503 means the provider is refusing the model itself, not that
+            // anything here is wrong. It read as the generic failure for days
+            // while the model behind meal analysis was permanently overloaded.
+            : status === 503
+              ? ' The AI provider is overloaded right now.'
+              : '';
 
     return NextResponse.json(
       {

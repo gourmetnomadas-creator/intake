@@ -51,10 +51,19 @@ export type AITask = 'meal-analysis' | 'light';
 export function getModel(task: AITask = 'light'): string {
   if (AI_PROVIDER === 'openai' && OPENAI_API_KEY) return 'gpt-4o-mini';
   if (AI_PROVIDER === 'gemini' && GEMINI_API_KEY) {
-    // flash-lite has roughly double the free-tier RPM, so the lighter tasks
-    // (suggestions, supplement tips, weekly review) use it. Meal analysis gets
-    // full flash, which reads photos noticeably better.
-    return task === 'meal-analysis' ? 'gemini-flash-latest' : 'gemini-flash-lite-latest';
+    // Both tasks run on flash-lite. Meal analysis and voice input used to get
+    // full `gemini-flash-latest`, which reads photos better — but the free tier
+    // stopped serving it, answering every request (text, image and audio alike)
+    // with a 503 "currently experiencing high demand". Those 503s took up to
+    // 45s to arrive, which is why the phone showed a timeout as often as an
+    // error. flash-lite answers the same photo in about a second.
+    //
+    // Falling back from flash to flash-lite was considered and rejected: the
+    // failing model burns the whole time budget before the fallback can start.
+    // If flash becomes reachable again, `tests/ai-live.test.ts` is the check
+    // that proves it before this line goes back to splitting by task.
+    void task;
+    return 'gemini-flash-lite-latest';
   }
   return 'deepseek-chat';
 }
