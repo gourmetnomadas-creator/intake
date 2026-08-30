@@ -17,17 +17,20 @@ afterEach(() => {
 });
 
 describe('getModel', () => {
-  it('gives meal analysis the vision-capable flash model on Gemini', async () => {
-    const { getModel, supportsVision } = await loadAi({
+  it('gives meal analysis a vision-capable model the free tier still serves', async () => {
+    const { getModel, supportsVision, supportsAudio } = await loadAi({
       AI_PROVIDER: 'gemini',
       GEMINI_API_KEY: 'test-key',
     });
 
-    expect(getModel('meal-analysis')).toBe('gemini-flash-latest');
+    // Not `gemini-flash-latest`: the free tier answers it with a permanent 503,
+    // which broke photo analysis and voice input alike. See lib/ai.ts.
+    expect(getModel('meal-analysis')).toBe('gemini-flash-lite-latest');
     expect(supportsVision(getModel('meal-analysis'))).toBe(true);
+    expect(supportsAudio(getModel('meal-analysis'))).toBe(true);
   });
 
-  it('keeps the cheaper flash-lite model for the lighter endpoints', async () => {
+  it('uses the same flash-lite model for the lighter endpoints', async () => {
     const { getModel } = await loadAi({ AI_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-key' });
 
     expect(getModel()).toBe('gemini-flash-lite-latest');
@@ -60,6 +63,6 @@ describe('getModel', () => {
       GEMINI_API_KEY: 'test-key',
     });
 
-    expect(getModel('meal-analysis')).toBe('gemini-flash-latest');
+    expect(getModel('meal-analysis')).toBe('gemini-flash-lite-latest');
   });
 });
