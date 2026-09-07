@@ -47,6 +47,8 @@ export default function MealReviewTable({
     if (!name || adding) return;
     setAdding(true);
     let macros = { kcalPer100g: 0, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 0 };
+    let source = 'manual';
+    let label = name;
     try {
       const res = await fetch('/api/food-nutrition', {
         method: 'POST',
@@ -61,6 +63,10 @@ export default function MealReviewTable({
           carbsPer100g: data.carbsPer100g ?? 0,
           fatPer100g: data.fatPer100g ?? 0,
         };
+        source = data.source ?? 'manual';
+        // A database match names the exact product it found; the AI is just
+        // estimating the words you typed, so those keep your wording.
+        if (data.matchedName && data.source !== 'ai') label = data.matchedName;
       } else if (data.error) {
         alert(data.error);
       }
@@ -69,7 +75,7 @@ export default function MealReviewTable({
     }
     onItemsChange([
       ...items,
-      { foodName: name, grams: 100, ...macros, source: 'manual', confidence: 1 },
+      { foodName: label, grams: 100, ...macros, source, confidence: 1 },
     ]);
     setAddName('');
     setAdding(false);
@@ -120,7 +126,7 @@ export default function MealReviewTable({
               handleAddByName();
             }
           }}
-          placeholder="Add ingredient (e.g. maple syrup)"
+          placeholder="Add ingredient or product (e.g. Nutella)"
           className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
         />
         <button
@@ -133,7 +139,8 @@ export default function MealReviewTable({
         </button>
       </div>
       <p className="-mt-2 text-[11px] text-slate-400">
-        AI fills in the nutrition — review the grams and amounts after.
+        Looked up in USDA and Open Food Facts for packaged products, AI-estimated
+        otherwise — review the grams and amounts after.
       </p>
 
       <div className="rounded-2xl bg-indigo-50 p-4 shadow-sm">

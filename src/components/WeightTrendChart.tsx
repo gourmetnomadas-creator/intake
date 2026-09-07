@@ -24,7 +24,7 @@ function labelFormat(spanDays: number): string {
   return 'MMM';
 }
 
-const ACCENT = '#1f6f57';
+const ACCENT = 'var(--brand-500)';
 
 const W = 300;
 const H = 54;
@@ -57,7 +57,7 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
 
   return (
     <div>
-      <div style={{ display: 'flex', background: '#f2eee7', borderRadius: 999, padding: 3 }}>
+      <div style={{ display: 'flex', background: 'var(--tone-100)', borderRadius: 999, padding: 3 }}>
         {RANGES.map((r) => (
           <button
             key={r.key}
@@ -72,7 +72,7 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
               cursor: 'pointer',
               border: 'none',
               background: range === r.key ? ACCENT : 'transparent',
-              color: range === r.key ? '#ffffff' : '#6b6b60',
+              color: range === r.key ? '#ffffff' : 'var(--tone-500)',
             }}
           >
             {r.label}
@@ -95,7 +95,7 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
                 y1={chart.yAt(goalWeight!)}
                 x2={W}
                 y2={chart.yAt(goalWeight!)}
-                stroke="#b8bcb8"
+                stroke="var(--tone-300)"
                 strokeWidth="1"
                 strokeDasharray="4,4"
               />
@@ -113,21 +113,21 @@ export default function WeightTrendChart({ logs, goalWeight = null }: WeightTren
               cx={chart.points[chart.points.length - 1][0]}
               cy={chart.points[chart.points.length - 1][1]}
               r="4"
-              fill="#fff"
+              fill="var(--surface)"
               stroke={ACCENT}
               strokeWidth="2.5"
             />
           </svg>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
             {labels.map((e) => (
-              <span key={e.date} style={{ font: '500 10px -apple-system,sans-serif', color: '#b0aa9c' }}>
+              <span key={e.date} style={{ font: '500 10px -apple-system,sans-serif', color: 'var(--tone-400)' }}>
                 {format(parseISO(e.date), fmt)}
               </span>
             ))}
           </div>
         </>
       ) : (
-        <p style={{ font: '400 12px -apple-system,sans-serif', color: '#b0aa9c', textAlign: 'center', margin: '16px 0 0' }}>
+        <p style={{ font: '400 12px -apple-system,sans-serif', color: 'var(--tone-400)', textAlign: 'center', margin: '16px 0 0' }}>
           No weigh-ins in this range yet.
         </p>
       )}

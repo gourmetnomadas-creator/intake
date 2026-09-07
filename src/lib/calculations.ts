@@ -286,16 +286,58 @@ export function getActivityMultiplier(activityLevel: string): number {
   return multipliers[activityLevel] ?? 1.2;
 }
 
-export function getGoalAdjustment(goalType: string): number {
-  const adjustments: Record<string, number> = {
-    lose: -500,
-    mild_deficit: -250,
-    maintain: 0,
-    mild_surplus: 250,
-    gain: 500,
-    manual: 0,
-  };
-  return adjustments[goalType] ?? 0;
+/**
+ * Energy in a kilo of body mass — the metric twin of the ~3,500 kcal/lb figure
+ * every calorie calculator uses for "how fast will I get there".
+ */
+export const KCAL_PER_KG = 7700;
+
+/**
+ * Pace of each goal as a share of bodyweight per week, with a daily cap.
+ * A flat -500 is far too aggressive on a 50 kg person and too timid on a
+ * 120 kg one, so the deficit follows the body it applies to; the caps keep
+ * the fast paces inside the usual safe range.
+ */
+const PACE: Record<string, { pctPerWeek: number; capPerDay: number }> = {
+  mild_deficit: { pctPerWeek: -0.005, capPerDay: 500 },
+  lose: { pctPerWeek: -0.01, capPerDay: 750 },
+  mild_surplus: { pctPerWeek: 0.0035, capPerDay: 300 },
+  gain: { pctPerWeek: 0.006, capPerDay: 400 },
+};
+
+/** Fallback when bodyweight is unknown: the old flat presets. */
+const FLAT_ADJUSTMENT: Record<string, number> = {
+  lose: -500,
+  mild_deficit: -250,
+  maintain: 0,
+  mild_surplus: 250,
+  gain: 500,
+  manual: 0,
+};
+
+/**
+ * Daily calorie adjustment for a goal. With a bodyweight it is sized to a
+ * percentage of that weight per week; without one it falls back to the flat
+ * preset.
+ */
+export function getGoalAdjustment(goalType: string, weightKg?: number | null): number {
+  const pace = PACE[goalType];
+  if (!pace || !weightKg || weightKg <= 0) return FLAT_ADJUSTMENT[goalType] ?? 0;
+
+  const perDay = (pace.pctPerWeek * weightKg * KCAL_PER_KG) / 7;
+  const capped = Math.sign(perDay) * Math.min(Math.abs(perDay), pace.capPerDay);
+  return Math.round(capped);
+}
+
+/**
+ * Lowest daily intake this app will ever *calculate* for someone. Below these
+ * a plan stops being a diet and starts being a medical matter, so an
+ * aggressive deficit on a small body is clamped here rather than shipped.
+ * Sex unknown -> the lower floor, so we never push someone to eat more than
+ * their own numbers call for.
+ */
+export function minimumCalories(sex: string | null | undefined): number {
+  return sex === 'male' ? 1500 : 1200;
 }
 
 export function calculateDailyCalorieTarget(profile: {
@@ -331,9 +373,14 @@ export function calculateDailyCalorieTarget(profile: {
     profile.sex
   );
   const multiplier = getActivityMultiplier(profile.activity_level);
-  const adjustment = getGoalAdjustment(profile.goal_type ?? 'maintain');
+  const adjustment = getGoalAdjustment(profile.goal_type ?? 'maintain', profile.weight_kg);
 
-  return Math.round(bmr * multiplier + adjustment);
+  // The floor applies to what we compute, never to a target the user typed in
+  // themselves — that one is their call (and possibly their doctor's).
+  return Math.max(
+    minimumCalories(profile.sex),
+    Math.round(bmr * multiplier + adjustment)
+  );
 }
 
 export const TREND_RANGE_DAYS = { week: 7, month: 30, year: 365 } as const;
@@ -421,6 +468,19 @@ export function buildTrendPath(
     line: points.map((p, i) => `${i === 0 ? 'M' : 'L'}${at(p)}`).join(' '),
     area: `M${points[0][0].toFixed(1)},${H} ${points.map((p) => `L${at(p)}`).join(' ')} L${points[n - 1][0].toFixed(1)},${H} Z`,
   };
+}
+
+/** A glass. The unit the +/- buttons move water by. */
+export const GLASS_ML = 250;
+
+/**
+ * Daily water target in millilitres: ~35 ml per kg of bodyweight, rounded to
+ * the nearest glass. Falls back to a flat 2 L when we do not know the weight.
+ */
+export function waterTargetMl(weightKg: number | null | undefined): number {
+  if (!weightKg || weightKg <= 0) return 2000;
+  const raw = weightKg * 35;
+  return Math.max(1500, Math.round(raw / GLASS_ML) * GLASS_ML);
 }
 
 export function formatGrams(value: number): string {

@@ -146,9 +146,9 @@ export default function WeightPage() {
           <p className="text-center text-xs text-slate-400">Goal</p>
           <div className="relative mx-auto mt-2 h-[132px] w-[132px]">
             <svg width="132" height="132" viewBox="0 0 132 132" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="66" cy="66" r="54" fill="none" stroke="#f0efe9" strokeWidth="9" />
+              <circle cx="66" cy="66" r="54" fill="none" stroke="var(--tone-100)" strokeWidth="9" />
               <circle
-                cx="66" cy="66" r="54" fill="none" stroke="#1E6F63" strokeWidth="9" strokeLinecap="round"
+                cx="66" cy="66" r="54" fill="none" stroke="var(--brand-500)" strokeWidth="9" strokeLinecap="round"
                 strokeDasharray={goalRing.circ} strokeDashoffset={goalRing.offset}
               />
             </svg>
@@ -192,11 +192,11 @@ export default function WeightPage() {
           </div>
           <svg viewBox="0 0 328 140" width="100%" height="130" preserveAspectRatio="none" className="mt-2.5 block overflow-visible">
             {chart.goalY >= 0 && (
-              <line x1="0" y1={chart.goalY} x2="328" y2={chart.goalY} stroke="#b8bcb8" strokeWidth="1" strokeDasharray="4,4" />
+              <line x1="0" y1={chart.goalY} x2="328" y2={chart.goalY} stroke="var(--tone-300)" strokeWidth="1" strokeDasharray="4,4" />
             )}
-            <path d={chart.area} fill="#1E6F63" fillOpacity="0.12" />
-            <path d={chart.line} fill="none" stroke="#1E6F63" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={chart.last[0]} cy={chart.last[1]} r="4.5" fill="#E8654B" />
+            <path d={chart.area} fill="var(--brand-500)" fillOpacity="0.12" />
+            <path d={chart.line} fill="none" stroke="var(--brand-500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={chart.last[0]} cy={chart.last[1]} r="4.5" fill="var(--accent-500)" />
           </svg>
           <div className="mt-1.5 flex justify-between">
             {chart.labels.map((l, i) => (

@@ -5,6 +5,7 @@ import {
   calculateBMR,
   getActivityMultiplier,
   getGoalAdjustment,
+  minimumCalories,
   calculateDailyCalorieTarget,
   formatGrams,
   formatKcal,
@@ -387,6 +388,62 @@ describe('getGoalAdjustment', () => {
     expect(getGoalAdjustment('mild_deficit')).toBe(-250);
     expect(getGoalAdjustment('mild_surplus')).toBe(250);
     expect(getGoalAdjustment('manual')).toBe(0);
+  });
+});
+
+describe('getGoalAdjustment with bodyweight', () => {
+  it('scales the deficit to the body it applies to', () => {
+    // 0.5%/week of 60 kg = 0.3 kg = 2310 kcal over 7 days = 330/day
+    expect(getGoalAdjustment('mild_deficit', 60)).toBe(-330);
+    expect(getGoalAdjustment('mild_deficit', 120)).toBe(-500); // capped
+  });
+
+  it('caps the aggressive pace at 750 a day', () => {
+    expect(getGoalAdjustment('lose', 50)).toBe(-550);
+    expect(getGoalAdjustment('lose', 100)).toBe(-750);
+  });
+
+  it('keeps surpluses in the 300-400 range', () => {
+    expect(getGoalAdjustment('mild_surplus', 70)).toBe(270);
+    expect(getGoalAdjustment('gain', 90)).toBe(400);
+  });
+
+  it('falls back to the flat preset without a weight', () => {
+    expect(getGoalAdjustment('lose')).toBe(-500);
+    expect(getGoalAdjustment('lose', 0)).toBe(-500);
+  });
+});
+
+describe('calorie floor', () => {
+  it('never calculates below the floor for the sex', () => {
+    const result = calculateDailyCalorieTarget({
+      weight_kg: 45,
+      height_cm: 150,
+      age: 60,
+      sex: 'female',
+      activity_level: 'sedentary',
+      goal_type: 'lose',
+      manual_calorie_target: null,
+    });
+
+    // BMR 1029 * 1.2 = 1235, minus a 495 deficit = 740 — clamped to 1200.
+    expect(result).toBe(1200);
+    expect(minimumCalories('female')).toBe(1200);
+    expect(minimumCalories('male')).toBe(1500);
+  });
+
+  it('leaves a manual target alone', () => {
+    const result = calculateDailyCalorieTarget({
+      weight_kg: 45,
+      height_cm: 150,
+      age: 60,
+      sex: 'female',
+      activity_level: 'sedentary',
+      goal_type: 'manual',
+      manual_calorie_target: 900,
+    });
+
+    expect(result).toBe(900);
   });
 });
 

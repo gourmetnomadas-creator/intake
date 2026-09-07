@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, getModel, supportsJsonMode, extractJson } from '@/lib/ai';
-import { searchLocalFoods } from '@/lib/food-database';
+import { lookupFood } from '@/lib/nutrition-sources';
 import { requireUser } from '@/lib/api-auth';
 
-// Nutrition per 100 g for a single food name — local database first, then AI.
+// Nutrition per 100 g for a single food name. Real databases first (local
+// table, USDA, Open Food Facts for anything packaged or branded), AI last.
 export async function POST(request: NextRequest) {
   try {
     const unauth = await requireUser();
@@ -14,14 +15,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid food name' }, { status: 400 });
     }
 
-    const local = searchLocalFoods(name)[0];
-    if (local) {
+    const match = await lookupFood(name);
+    if (match) {
       return NextResponse.json({
-        kcalPer100g: local.kcalPer100g,
-        proteinPer100g: local.proteinPer100g,
-        carbsPer100g: local.carbsPer100g,
-        fatPer100g: local.fatPer100g,
-        source: 'local',
+        kcalPer100g: match.kcalPer100g,
+        proteinPer100g: match.proteinPer100g,
+        carbsPer100g: match.carbsPer100g,
+        fatPer100g: match.fatPer100g,
+        source: match.source,
+        // What the database actually matched, so "kitkat" can show up as the
+        // product it resolved to instead of silently becoming something else.
+        matchedName: match.name,
       });
     }
 

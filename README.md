@@ -11,6 +11,7 @@ The app helps you track daily calories and macros by photographing meals, enteri
 - Supabase (database, auth, image storage)
 - OpenAI API (meal interpretation)
 - USDA FoodData Central API (optional nutrition lookup)
+- Open Food Facts (packaged and branded products, no key needed)
 - PWA (iPhone home screen installable)
 - Vercel deployment
 
@@ -70,6 +71,19 @@ Fill in your values:
 | `AI_PROVIDER` | `gemini` (default), `openai` or `deepseek` |
 | `GEMINI_API_KEY` | Your Gemini API key — required when `AI_PROVIDER=gemini` |
 | `USDA_API_KEY` | (Optional) USDA FoodData Central API key |
+
+#### Where nutrition numbers come from
+
+Looking up a food name tries real databases before asking the AI:
+
+1. the small curated table in `src/lib/food-database.ts` (instant, common foods),
+2. USDA FoodData Central, when `USDA_API_KEY` is set (generic whole foods),
+3. Open Food Facts (packaged and branded products — no API key, no account),
+4. the AI model, only when none of them know the food.
+
+Each ingredient shows which source it came from, and a database match is named
+after the product it actually matched, so "nutella" logs as *Ferrero Nutella*
+rather than as whatever you typed.
 
 #### Photo analysis
 
@@ -131,6 +145,7 @@ Vercel only picks up environment changes on a new build.
 ## MVP limitations
 
 - The app estimates calories and macros. It is not a medical device and does not provide medical advice.
+- Calculated targets are never below 1,500 kcal/day for men or 1,200 for women, and deficits are sized to a percentage of bodyweight per week rather than a flat number. A target you type in yourself is left alone — that one is between you and your doctor.
 - The user must review and correct AI results before saving.
 - Bluetooth kitchen scale support is not included yet.
 - Photo recognition is assistive, not definitive.
@@ -149,11 +164,13 @@ Vercel only picks up environment changes on a new build.
 - Meal history with search and filter
 - Repeat meal from history
 - Favorites management
+- Water tracking against a bodyweight-based target
+- Light and dark mode
+- Packaged-product lookup via Open Food Facts
 - PWA installable on iPhone
 
 ### v2
 - Barcode scanner
-- Open Food Facts integration
 - Improved saved meals and recipe mode
 - Weekly summaries
 - CSV export

@@ -1,9 +1,7 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f6f5f1;
-  --foreground: #17201d;
-}
+/* `dark:` follows the .dark class the pre-paint script sets, not the OS query. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /*
   Intake visual identity. The app was built with slate/indigo/emerald utility
@@ -12,43 +10,130 @@
     indigo  -> teal    (primary / brand)
     emerald -> coral   (protein / highlights)
     slate   -> warm neutrals (ink, muted, lines, cream)
+
+  Every token is a var() indirection rather than a literal, which is what makes
+  the dark theme a variable swap instead of a `dark:` class on 37 components.
 */
+:root {
+  --background: #f6f5f1;
+  --foreground: #17201d;
+  --surface: #ffffff;
+  --elevation: 0 1px 3px rgba(23, 32, 29, 0.06);
+
+  /* Neutrals — warm greige */
+  --tone-50: #f6f5f1;
+  --tone-100: #edebe4;
+  --tone-200: #e3e1da;
+  --tone-300: #cfccc2;
+  --tone-400: #8a928d;
+  --tone-500: #6b7570;
+  --tone-600: #55605a;
+  --tone-700: #2f3833;
+  --tone-800: #1f2823;
+  --tone-900: #17201d;
+
+  /* Primary — teal */
+  --brand-50: #e7f1ef;
+  --brand-100: #d3e5e1;
+  --brand-200: #b7d6d0;
+  --brand-300: #8fc0b8;
+  --brand-400: #4e9488;
+  --brand-500: #1e6f63;
+  --brand-600: #164f46;
+  --brand-700: #164f46;
+
+  /* Secondary — coral (protein / success accents) */
+  --accent-50: #fbeae6;
+  --accent-100: #f7d5cd;
+  --accent-400: #ee8a76;
+  --accent-500: #e8654b;
+  --accent-600: #cf4f37;
+}
+
+/*
+  Dark theme. The ramp is reversed, not just darkened: `slate-50` means "page
+  background" and `slate-900` means "ink" throughout the app, so those two swap
+  ends and everything in between follows.
+*/
+.dark {
+  --background: #121614;
+  --foreground: #f3f7f4;
+  --surface: #1b211f;
+  --elevation: 0 1px 3px rgba(0, 0, 0, 0.45);
+
+  --tone-50: #121614;
+  --tone-100: #1e2422;
+  --tone-200: #2a322f;
+  --tone-300: #3a443f;
+  --tone-400: #8d968f;
+  --tone-500: #a7b0a9;
+  --tone-600: #c0c8c2;
+  --tone-700: #d8ded9;
+  --tone-800: #e9eeea;
+  --tone-900: #f3f7f4;
+
+  --brand-50: #17302a;
+  --brand-100: #1c3b33;
+  --brand-200: #24493f;
+  --brand-300: #35695c;
+  --brand-400: #4e9488;
+  --brand-500: #22796b;
+  --brand-600: #2c9083;
+  --brand-700: #7fc9b9;
+
+  --accent-50: #33201b;
+  --accent-100: #42271f;
+  --accent-400: #ee8a76;
+  --accent-500: #e8654b;
+  --accent-600: #f08a74;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Neutrals — warm greige */
-  --color-slate-50: #f6f5f1;
-  --color-slate-100: #edebe4;
-  --color-slate-200: #e3e1da;
-  --color-slate-300: #cfccc2;
-  --color-slate-400: #8a928d;
-  --color-slate-500: #6b7570;
-  --color-slate-600: #55605a;
-  --color-slate-700: #2f3833;
-  --color-slate-800: #1f2823;
-  --color-slate-900: #17201d;
+  --color-slate-50: var(--tone-50);
+  --color-slate-100: var(--tone-100);
+  --color-slate-200: var(--tone-200);
+  --color-slate-300: var(--tone-300);
+  --color-slate-400: var(--tone-400);
+  --color-slate-500: var(--tone-500);
+  --color-slate-600: var(--tone-600);
+  --color-slate-700: var(--tone-700);
+  --color-slate-800: var(--tone-800);
+  --color-slate-900: var(--tone-900);
 
-  /* Primary — teal */
-  --color-indigo-50: #e7f1ef;
-  --color-indigo-100: #d3e5e1;
-  --color-indigo-200: #b7d6d0;
-  --color-indigo-300: #8fc0b8;
-  --color-indigo-400: #4e9488;
-  --color-indigo-500: #1e6f63;
-  --color-indigo-600: #164f46;
-  --color-indigo-700: #164f46;
+  --color-indigo-50: var(--brand-50);
+  --color-indigo-100: var(--brand-100);
+  --color-indigo-200: var(--brand-200);
+  --color-indigo-300: var(--brand-300);
+  --color-indigo-400: var(--brand-400);
+  --color-indigo-500: var(--brand-500);
+  --color-indigo-600: var(--brand-600);
+  --color-indigo-700: var(--brand-700);
 
-  /* Secondary — coral (protein / success accents) */
-  --color-emerald-50: #fbeae6;
-  --color-emerald-100: #f7d5cd;
-  --color-emerald-400: #ee8a76;
-  --color-emerald-500: #e8654b;
-  --color-emerald-600: #cf4f37;
+  --color-emerald-50: var(--accent-50);
+  --color-emerald-100: var(--accent-100);
+  --color-emerald-400: var(--accent-400);
+  --color-emerald-500: var(--accent-500);
+  --color-emerald-600: var(--accent-600);
 
   /* Rounder cards + the single soft elevation from the handoff */
   --radius-2xl: 20px;
-  --shadow-sm: 0 1px 3px rgba(23, 32, 29, 0.06);
+  --shadow-sm: var(--elevation);
+}
+
+/*
+  `bg-white` is this app's word for "card surface" — it is always a panel, never
+  a text colour (buttons use `text-white` on teal, which must stay white). So
+  the surface is remapped here rather than through the `white` token, which
+  those labels also read from.
+*/
+.dark .bg-white {
+  background-color: var(--surface);
+}
+.dark .bg-white\/80 {
+  background-color: color-mix(in srgb, var(--surface) 80%, transparent);
 }
 
 body {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Meal, Profile } from '@/types';
 import { formatDate, getMealTypeLabel, mealEmoji } from '@/lib/utils';
-import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
+import { ageFromBirthdate, calculateDailyCalorieTarget, waterTargetMl } from '@/lib/calculations';
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
 import DailySummaryCard from '@/components/DailySummaryCard';
@@ -12,6 +12,7 @@ import CelebrationModal from '@/components/CelebrationModal';
 import SuggestMealCard from '@/components/SuggestMealCard';
 import MacrosCard from '@/components/MacrosCard';
 import SupplementsCard from '@/components/SupplementsCard';
+import WaterCard from '@/components/WaterCard';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
@@ -250,6 +251,11 @@ export default function TodayDashboard() {
           proteinTarget={proteinTarget}
           carbsTarget={carbsTarget}
           fatTarget={fatTarget}
+        />
+
+        <WaterCard
+          userId={session.user.id}
+          targetMl={waterTargetMl(profile?.current_weight_kg)}
         />
 
         <SupplementsCard userId={session.user.id} />

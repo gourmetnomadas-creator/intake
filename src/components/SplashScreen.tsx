@@ -68,7 +68,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
         position: 'fixed',
         inset: 0,
         zIndex: 100,
-        background: '#F6F5F1',
+        background: 'var(--background)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -82,13 +82,13 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
         height={220}
         style={{ opacity, transform: `scale(${scale})`, transformOrigin: '50px 50px' }}
       >
-        <path d={mouthPath} stroke="#1E6F63" strokeWidth={8} fill="none" strokeLinecap="round" />
-        <path d="M31 27 L41 39 M43 26 L33 40" stroke="#17201D" strokeWidth={7} strokeLinecap="round" fill="none" />
+        <path d={mouthPath} stroke="var(--brand-500)" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M31 27 L41 39 M43 26 L33 40" stroke="var(--foreground)" strokeWidth={7} strokeLinecap="round" fill="none" />
         <g style={{ ...eyeGroup, transform: `scaleY(${eyeScaleY})`, opacity: rightIsCheck ? 0 : 1 }}>
-          <path d="M59 28 L69 40 M71 28 L61 41" stroke="#17201D" strokeWidth={7} strokeLinecap="round" fill="none" />
+          <path d="M59 28 L69 40 M71 28 L61 41" stroke="var(--foreground)" strokeWidth={7} strokeLinecap="round" fill="none" />
         </g>
         <g style={{ ...eyeGroup, transform: `scaleY(${eyeScaleY})`, opacity: rightIsCheck ? 1 : 0 }}>
-          <path d="M57 35 L63 43 L76 25" stroke="#E8654B" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <path d="M57 35 L63 43 L76 25" stroke="var(--accent-500)" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </g>
       </svg>
     </div>

@@ -67,17 +67,17 @@ export default function ProfileCard({
 
   return (
     <div style={{ padding: '14px 22px 28px' }}>
-      <h1 style={{ font: '700 30px -apple-system,sans-serif', color: '#1c1c1a', margin: '0 0 16px' }}>
+      <h1 style={{ font: '700 30px -apple-system,sans-serif', color: 'var(--tone-900)', margin: '0 0 16px' }}>
         Profile
       </h1>
 
       {/* Weight Ring */}
-      <div style={{ background: '#ffffff', borderRadius: '26px', padding: '24px 20px', boxShadow: '0 1px 2px rgba(0,0,0,.04)', textAlign: 'center' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '26px', padding: '24px 20px', boxShadow: '0 1px 2px rgba(0,0,0,.04)', textAlign: 'center' }}>
         <div style={{
           width: '180px',
           height: '180px',
           borderRadius: '50%',
-          background: `conic-gradient(#1f6f57 0deg ${progressDegrees}deg, #eee9df ${progressDegrees}deg 360deg)`,
+          background: `conic-gradient(var(--brand-500) 0deg ${progressDegrees}deg, var(--tone-200) ${progressDegrees}deg 360deg)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -87,19 +87,19 @@ export default function ProfileCard({
             width: '150px',
             height: '150px',
             borderRadius: '50%',
-            background: '#fff',
+            background: 'var(--surface)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <div style={{ font: '700 30px -apple-system,sans-serif', color: '#1c1c1a' }}>
+            <div style={{ font: '700 30px -apple-system,sans-serif', color: 'var(--tone-900)' }}>
               {weight.toFixed(1)} kg
             </div>
-            <div style={{ font: '600 13px -apple-system,sans-serif', color: '#8a8578', marginTop: '2px' }}>
+            <div style={{ font: '600 13px -apple-system,sans-serif', color: 'var(--tone-400)', marginTop: '2px' }}>
               {weightTrend ? (weightTrend > 0 ? '▲' : '▼') : '—'} {Math.abs(weightTrend ?? 0).toFixed(1)} kg
             </div>
-            <div style={{ font: '500 12.5px -apple-system,sans-serif', color: '#8a8578', marginTop: '4px' }}>
+            <div style={{ font: '500 12.5px -apple-system,sans-serif', color: 'var(--tone-400)', marginTop: '4px' }}>
               {diff != null && goalWeight != null
                 ? `${Math.abs(diff).toFixed(1)} kg to ${goalWeight} kg goal`
                 : 'No goal set yet'}
@@ -108,14 +108,14 @@ export default function ProfileCard({
         </div>
         {weeklyAvg != null && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
-            <span style={{ font: '500 13px -apple-system,sans-serif', color: '#6b6b60' }}>7-day avg</span>
-            <span style={{ font: '700 13px -apple-system,sans-serif', color: '#1c1c1a' }}>{weeklyAvg} kg</span>
+            <span style={{ font: '500 13px -apple-system,sans-serif', color: 'var(--tone-500)' }}>7-day avg</span>
+            <span style={{ font: '700 13px -apple-system,sans-serif', color: 'var(--tone-900)' }}>{weeklyAvg} kg</span>
           </div>
         )}
         <div
           onClick={onEditProfile}
           style={{
-            background: '#1f6f57',
+            background: 'var(--brand-500)',
             color: '#fff',
             textAlign: 'center',
             padding: '17px',
@@ -135,17 +135,17 @@ export default function ProfileCard({
 
       {/* Macros */}
       <div style={{ display: 'flex', gap: '12px', marginTop: '14px' }}>
-        <div style={{ flex: 1, background: '#dcece3', borderRadius: '18px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ font: '700 26px -apple-system,sans-serif', color: '#1c1c1a' }}>
+        <div style={{ flex: 1, background: 'var(--brand-100)', borderRadius: '18px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ font: '700 26px -apple-system,sans-serif', color: 'var(--tone-900)' }}>
             {Math.round(targetKcal ?? 0)}
           </div>
-          <div style={{ font: '400 12px -apple-system,sans-serif', color: '#4c6a5c' }}>kcal / day</div>
+          <div style={{ font: '400 12px -apple-system,sans-serif', color: 'var(--brand-700)' }}>kcal / day</div>
         </div>
-        <div style={{ flex: 1, background: '#f7dfdd', borderRadius: '18px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ font: '700 26px -apple-system,sans-serif', color: '#1c1c1a' }}>
+        <div style={{ flex: 1, background: 'var(--accent-100)', borderRadius: '18px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ font: '700 26px -apple-system,sans-serif', color: 'var(--tone-900)' }}>
             {proteinTarget}g
           </div>
-          <div style={{ font: '400 12px -apple-system,sans-serif', color: '#8a5650' }}>protein / day</div>
+          <div style={{ font: '400 12px -apple-system,sans-serif', color: 'var(--accent-600)' }}>protein / day</div>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export default function ProfileCard({
       <div
         onClick={onEditPreferences}
         style={{
-          background: '#ffffff',
+          background: 'var(--surface)',
           borderRadius: '18px',
           padding: '16px 18px',
           marginTop: '14px',
@@ -164,21 +164,21 @@ export default function ProfileCard({
         }}
       >
         <div>
-          <div style={{ font: '600 15px -apple-system,sans-serif', color: '#1c1c1a' }}>
+          <div style={{ font: '600 15px -apple-system,sans-serif', color: 'var(--tone-900)' }}>
             Dietary preferences
           </div>
-          <div style={{ font: '400 13px -apple-system,sans-serif', color: '#6b6b60', marginTop: '3px' }}>
+          <div style={{ font: '400 13px -apple-system,sans-serif', color: 'var(--tone-500)', marginTop: '3px' }}>
             {profile.diet_type ? profile.diet_type.charAt(0).toUpperCase() + profile.diet_type.slice(1) : 'Not set'} · {profile.dietary_restrictions ? 'Restrictions set' : 'no restrictions'}
           </div>
         </div>
-        <span style={{ color: '#b0aa9c', fontSize: '15px' }}>›</span>
+        <span style={{ color: 'var(--tone-400)', fontSize: '15px' }}>›</span>
       </div>
 
       {/* Personal & Goal Details */}
       <div
         onClick={onEditProfile}
         style={{
-          background: '#ffffff',
+          background: 'var(--surface)',
           borderRadius: '18px',
           padding: '16px 18px',
           marginTop: '10px',
@@ -189,10 +189,10 @@ export default function ProfileCard({
         }}
       >
         <div>
-          <div style={{ font: '600 15px -apple-system,sans-serif', color: '#1c1c1a' }}>
+          <div style={{ font: '600 15px -apple-system,sans-serif', color: 'var(--tone-900)' }}>
             Weight & goal
           </div>
-          <div style={{ font: '400 12px -apple-system,sans-serif', color: '#8a8578', marginTop: '2px' }}>
+          <div style={{ font: '400 12px -apple-system,sans-serif', color: 'var(--tone-400)', marginTop: '2px' }}>
             {/* This row opens the weight screen, so it names what is actually
                 editable there rather than fields it cannot reach. */}
             {profile.goal_weight_kg != null
@@ -200,17 +200,17 @@ export default function ProfileCard({
               : 'Log your weight and set a goal'}
           </div>
         </div>
-        <span style={{ color: '#b0aa9c', fontSize: '15px' }}>›</span>
+        <span style={{ color: 'var(--tone-400)', fontSize: '15px' }}>›</span>
       </div>
 
       {/* Export Data */}
-      <div style={{ background: '#ffffff', borderRadius: '18px', padding: '18px', marginTop: '14px' }}>
-        <div style={{ font: '600 14px -apple-system,sans-serif', color: '#1c1c1a', marginBottom: '8px' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '18px', padding: '18px', marginTop: '14px' }}>
+        <div style={{ font: '600 14px -apple-system,sans-serif', color: 'var(--tone-900)', marginBottom: '8px' }}>
           📄 Export data
         </div>
         <div style={{
           font: '400 13px -apple-system,sans-serif',
-          color: '#6b6b60',
+          color: 'var(--tone-500)',
           lineHeight: '1.5',
           marginBottom: '14px',
         }}>
@@ -219,7 +219,7 @@ export default function ProfileCard({
         <div
           onClick={onExport}
           style={{
-            background: '#1f6f57',
+            background: 'var(--brand-500)',
             color: '#fff',
             textAlign: 'center',
             padding: '13px',

@@ -128,6 +128,15 @@ export interface SupplementLog {
   created_at: string;
 }
 
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string;
+  ml: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type TimeOfDay = 'morning' | 'midday' | 'evening' | 'night';
 
 // Single source of truth for meal types: the form's buttons and the API's

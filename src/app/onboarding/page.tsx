@@ -9,6 +9,7 @@ import {
   calculateBMR,
   getActivityMultiplier,
   getGoalAdjustment,
+  minimumCalories,
 } from '@/lib/calculations';
 import Logo from '@/components/Logo';
 
@@ -59,12 +60,15 @@ export default function OnboardingPage() {
     });
   }, []);
 
+  const floor = minimumCalories(sex);
   const computedTarget = (() => {
     if (!goal || !activity) return null;
     const bmr = calculateBMR(weightKg, heightCm, ageFromBirthdate(birthDate) ?? 28, sex ?? 'female');
-    return Math.round(bmr * getActivityMultiplier(activity) + getGoalAdjustment(goal));
+    const raw = Math.round(bmr * getActivityMultiplier(activity) + getGoalAdjustment(goal, weightKg));
+    return Math.max(floor, raw);
   })();
   const targetCalories = customTarget && calorieOverride != null ? calorieOverride : computedTarget;
+  const belowFloor = targetCalories != null && targetCalories < floor;
   const proteinG = Math.round(weightKg * 1.6);
   const fatG = targetCalories ? Math.round((targetCalories * 0.25) / 9) : 0;
   const carbsG =
@@ -315,6 +319,17 @@ export default function OnboardingPage() {
                 <button onClick={() => setCalorieOverride((c) => (c ?? computedTarget ?? 2000) + 50)} className={stepBtn}>+</button>
               </div>
             )}
+            {belowFloor && (
+              <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-600">
+                {targetCalories} kcal is below {floor} kcal a day. Intake will not
+                calculate a target this low — eating here for long is something to
+                agree with your doctor first, not with an app.
+              </p>
+            )}
+            <p className="mt-3 text-center text-[11px] text-slate-400">
+              Estimate from the Mifflin-St Jeor equation and standard activity
+              multipliers. General guidance, not medical advice.
+            </p>
           </div>
         )}
 
