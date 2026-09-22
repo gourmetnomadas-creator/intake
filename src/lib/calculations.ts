@@ -525,3 +525,16 @@ export function formatGrams(value: number): string {
 export function formatKcal(value: number): string {
   return `${Math.round(value)} kcal`;
 }
+
+// "10 g coco rallado", "Peanut butter 40g" → { name: 'coco rallado', grams: 10 }.
+// Without this, typed amounts stayed in the name and the item was saved as 100 g.
+export function parseQuantity(input: string): { name: string; grams: number | null } {
+  const text = input.trim();
+  const m =
+    text.match(/^(\d+(?:[.,]\d+)?)\s*(?:g|gr|grs|gramos?)\.?\s+(?:de\s+)?(.+)$/i) ??
+    text.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|gr|grs|gramos?)\.?$/i);
+  if (!m) return { name: text, grams: null };
+  const [num, name] = /^\d/.test(m[1]) ? [m[1], m[2]] : [m[2], m[1]];
+  const grams = parseFloat(num.replace(',', '.'));
+  return grams > 0 ? { name: name.trim(), grams } : { name: text, grams: null };
+}

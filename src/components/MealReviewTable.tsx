@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AIAnalysisItem } from '@/types';
 import IngredientRow from './IngredientRow';
-import { calculateMealTotals } from '@/lib/calculations';
+import { calculateMealTotals, parseQuantity } from '@/lib/calculations';
 
 interface MealReviewTableProps {
   items: AIAnalysisItem[];
@@ -43,7 +43,7 @@ export default function MealReviewTable({
   };
 
   const handleAddByName = async () => {
-    const name = addName.trim();
+    const { name, grams } = parseQuantity(addName);
     if (!name || adding) return;
     setAdding(true);
     let macros = { kcalPer100g: 0, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 0 };
@@ -75,7 +75,7 @@ export default function MealReviewTable({
     }
     onItemsChange([
       ...items,
-      { foodName: label, grams: 100, ...macros, source, confidence: 1 },
+      { foodName: label, grams: grams ?? 100, ...macros, source, confidence: 1 },
     ]);
     setAddName('');
     setAdding(false);

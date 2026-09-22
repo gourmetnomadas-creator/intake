@@ -2,6 +2,7 @@ import {
   ageFromBirthdate,
   calculateItemNutrition,
   calculateMealTotals,
+  parseQuantity,
   calculateBMR,
   getActivityMultiplier,
   getGoalAdjustment,
@@ -654,5 +655,20 @@ describe('buildTrendPath', () => {
 
   it('centres a single point', () => {
     expect(buildTrendPath([60], opts)!.points[0][0]).toBe(50);
+  });
+});
+
+describe('parseQuantity', () => {
+  it('pulls grams out of typed names', () => {
+    expect(parseQuantity('10 g coco rallado')).toEqual({ name: 'coco rallado', grams: 10 });
+    expect(parseQuantity('40g mantequilla de maní')).toEqual({ name: 'mantequilla de maní', grams: 40 });
+    expect(parseQuantity('150 gramos de papas al horno')).toEqual({ name: 'papas al horno', grams: 150 });
+    expect(parseQuantity('Peanut butter 40g')).toEqual({ name: 'Peanut butter', grams: 40 });
+    expect(parseQuantity('12,5 g chía')).toEqual({ name: 'chía', grams: 12.5 });
+  });
+  it('leaves names without an amount alone', () => {
+    expect(parseQuantity('Nutella')).toEqual({ name: 'Nutella', grams: null });
+    expect(parseQuantity('2 huevos')).toEqual({ name: '2 huevos', grams: null });
+    expect(parseQuantity('174 potatoes')).toEqual({ name: '174 potatoes', grams: null });
   });
 });
