@@ -16,6 +16,7 @@ import {
   suggestionContext,
   suggestionBudget,
   describeMacroGaps,
+  macroTargets,
   CLOSE_ENOUGH_KCAL,
 } from '../src/lib/calculations';
 import { analyzeMealSchema, mealItemSchema, totalGramsValidation } from '../src/lib/validations';
@@ -52,8 +53,8 @@ describe('buildMarkdownReport', () => {
     expect(md).toContain('oats: 80 g');
     expect(md).toContain('Magnesium');
     expect(md).toContain('checked off on 1 day(s)');
-    // protein target 80 * 1.6 = 128
-    expect(md).toContain('128 g/day');
+    // no goal set: protein target 80 * 1.8 = 144
+    expect(md).toContain('Protein target (1.8 g/kg): 144 g/day');
   });
 });
 
@@ -388,6 +389,32 @@ describe('getGoalAdjustment', () => {
     expect(getGoalAdjustment('mild_deficit')).toBe(-250);
     expect(getGoalAdjustment('mild_surplus')).toBe(250);
     expect(getGoalAdjustment('manual')).toBe(0);
+    expect(getGoalAdjustment('gain')).toBe(300);
+  });
+});
+
+describe('macroTargets', () => {
+  it('uses 1.8 g/kg protein and 30% fat outside a deficit, carbs fill the rest', () => {
+    // 80 kg, 2800 kcal: protein 144 g (576 kcal), fat 93 g (837 kcal)
+    expect(macroTargets({ weightKg: 80, targetKcal: 2800, goalType: 'maintain' })).toEqual({
+      protein: 144,
+      fat: 93,
+      carbs: 347,
+    });
+  });
+
+  it('raises protein to 2.0 g/kg in a deficit', () => {
+    expect(macroTargets({ weightKg: 80, targetKcal: 2200, goalType: 'mild_deficit' }).protein).toBe(160);
+    expect(macroTargets({ weightKg: 80, targetKcal: 2200, goalType: 'lose' }).protein).toBe(160);
+  });
+
+  it('falls back to 30% of kcal for protein without a weight, and nulls without kcal', () => {
+    expect(macroTargets({ weightKg: null, targetKcal: 2000, goalType: null }).protein).toBe(150);
+    expect(macroTargets({ weightKg: 80, targetKcal: null, goalType: null })).toEqual({
+      protein: 144,
+      fat: null,
+      carbs: null,
+    });
   });
 });
 
@@ -403,9 +430,9 @@ describe('getGoalAdjustment with bodyweight', () => {
     expect(getGoalAdjustment('lose', 100)).toBe(-750);
   });
 
-  it('keeps surpluses in the 300-400 range', () => {
+  it('keeps surpluses at or under 300 kcal a day', () => {
     expect(getGoalAdjustment('mild_surplus', 70)).toBe(270);
-    expect(getGoalAdjustment('gain', 90)).toBe(400);
+    expect(getGoalAdjustment('gain', 90)).toBe(300); // capped
   });
 
   it('falls back to the flat preset without a weight', () => {

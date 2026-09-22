@@ -302,7 +302,8 @@ const PACE: Record<string, { pctPerWeek: number; capPerDay: number }> = {
   mild_deficit: { pctPerWeek: -0.005, capPerDay: 500 },
   lose: { pctPerWeek: -0.01, capPerDay: 750 },
   mild_surplus: { pctPerWeek: 0.0035, capPerDay: 300 },
-  gain: { pctPerWeek: 0.006, capPerDay: 400 },
+  // Past ~300 kcal over maintenance the extra mostly lands as fat.
+  gain: { pctPerWeek: 0.006, capPerDay: 300 },
 };
 
 /** Fallback when bodyweight is unknown: the old flat presets. */
@@ -311,7 +312,7 @@ const FLAT_ADJUSTMENT: Record<string, number> = {
   mild_deficit: -250,
   maintain: 0,
   mild_surplus: 250,
-  gain: 500,
+  gain: 300,
   manual: 0,
 };
 
@@ -381,6 +382,40 @@ export function calculateDailyCalorieTarget(profile: {
     minimumCalories(profile.sex),
     Math.round(bmr * multiplier + adjustment)
   );
+}
+
+/**
+ * Protein per kg of body weight. Higher in a deficit, where the extra protects
+ * muscle that would otherwise go along with the fat.
+ */
+export function proteinPerKg(goalType: string | null | undefined): number {
+  return goalType === 'lose' || goalType === 'mild_deficit' ? 2.0 : 1.8;
+}
+
+/** Share of the calorie target given to fat. Below ~20% testosterone drops. */
+export const FAT_SHARE = 0.3;
+
+/**
+ * Daily macro targets in grams: protein from body weight and goal, fat as a
+ * fixed share of calories, carbs fill what is left.
+ */
+export function macroTargets(input: {
+  weightKg: number | null | undefined;
+  targetKcal: number | null | undefined;
+  goalType: string | null | undefined;
+}): { protein: number | null; carbs: number | null; fat: number | null } {
+  const { weightKg, targetKcal, goalType } = input;
+  const protein = weightKg
+    ? Math.round(weightKg * proteinPerKg(goalType))
+    : targetKcal
+    ? Math.round((targetKcal * 0.3) / 4)
+    : null;
+  const fat = targetKcal ? Math.round((targetKcal * FAT_SHARE) / 9) : null;
+  const carbs =
+    targetKcal && protein && fat
+      ? Math.round(Math.max(0, targetKcal - protein * 4 - fat * 9) / 4)
+      : null;
+  return { protein, carbs, fat };
 }
 
 export const TREND_RANGE_DAYS = { week: 7, month: 30, year: 365 } as const;

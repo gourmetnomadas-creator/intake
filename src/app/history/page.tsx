@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getUserSession } from '@/lib/session';
 import { Meal, BodyWeightLog, Profile, Supplement } from '@/types';
 import { formatTime, getMealTypeLabel } from '@/lib/utils';
-import { ageFromBirthdate, calculateDailyCalorieTarget } from '@/lib/calculations';
+import { ageFromBirthdate, calculateDailyCalorieTarget, macroTargets } from '@/lib/calculations';
 import AppShell from '@/components/AppShell';
 import EmptyState from '@/components/EmptyState';
 import LoadingState from '@/components/LoadingState';
@@ -231,11 +231,11 @@ export default function HistoryPage() {
           manual_calorie_target: profile.manual_calorie_target,
         })
       : null;
-    const proteinTarget = profile?.current_weight_kg
-      ? Math.round(profile.current_weight_kg * 1.6)
-      : targetKcal
-      ? Math.round((targetKcal * 0.3) / 4)
-      : null;
+    const proteinTarget = macroTargets({
+      weightKg: profile?.current_weight_kg,
+      targetKcal,
+      goalType: profile?.goal_type,
+    }).protein;
 
     const supplementAdherence = (supps || []).map((s: { id: string; name: string }) => {
       const taken = (logs || []).filter((l: { supplement_id: string }) => l.supplement_id === s.id).length;

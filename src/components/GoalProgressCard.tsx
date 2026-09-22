@@ -7,9 +7,9 @@ import {
   assessRate,
   averageDailyProtein,
   loggingAdherence,
-  PROTEIN_REFERENCE_G_PER_KG,
   type RateStatus,
 } from '@/lib/progress';
+import { proteinPerKg } from '@/lib/calculations';
 
 const WINDOW_DAYS = 28;
 
@@ -103,7 +103,7 @@ export default function GoalProgressCard({ profile, meals, weightLogs }: GoalPro
             </p>
             <p className="text-xs text-slate-400">
               {protein.perKg != null
-                ? `${protein.perKg} g per kg of body weight · ${PROTEIN_REFERENCE_G_PER_KG} g/kg is the figure this app uses to set your target`
+                ? `${protein.perKg} g per kg of body weight · ${proteinPerKg(profile?.goal_type)} g/kg is the figure this app uses to set your target`
                 : `Averaged over ${protein.daysCounted} logged days`}
             </p>
           </>
