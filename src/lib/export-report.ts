@@ -1,4 +1,4 @@
-import { ageFromBirthdate } from './calculations';
+import { ageFromBirthdate, proteinPerKg } from './calculations';
 
 // Minimal shapes we read from Supabase for the report.
 interface ReportProfile {
@@ -80,7 +80,8 @@ export function buildMarkdownReport(data: ReportData): string {
   lines.push('## Profile and targets');
   if (profile) {
     const age = ageFromBirthdate(profile.birthdate) ?? profile.age ?? null;
-    const proteinTarget = profile.current_weight_kg ? r(profile.current_weight_kg * 1.6) : null;
+    const gPerKg = proteinPerKg(profile.goal_type);
+    const proteinTarget = profile.current_weight_kg ? r(profile.current_weight_kg * gPerKg) : null;
     lines.push(`- Name: ${profile.name || '—'}`);
     lines.push(`- Sex: ${profile.sex || '—'}`);
     lines.push(`- Age: ${age ?? '—'}`);
@@ -91,7 +92,7 @@ export function buildMarkdownReport(data: ReportData): string {
     lines.push(
       `- Calorie target: ${profile.manual_calorie_target || profile.calculated_calorie_target || '—'} kcal/day`
     );
-    lines.push(`- Protein target (1.6 g/kg): ${proteinTarget ?? '—'} g/day`);
+    lines.push(`- Protein target (${gPerKg} g/kg): ${proteinTarget ?? '—'} g/day`);
   } else {
     lines.push('- (No profile saved)');
   }

@@ -141,9 +141,6 @@ export function averageDailyProtein(
   };
 }
 
-// The figure the app already uses to set a protein target at onboarding.
-export const PROTEIN_REFERENCE_G_PER_KG = 1.6;
-
 /** How many of the last N days have at least one meal on them. */
 export function loggingAdherence(
   meals: { date: string }[],

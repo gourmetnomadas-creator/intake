@@ -9,6 +9,7 @@ import {
   calculateBMR,
   getActivityMultiplier,
   getGoalAdjustment,
+  macroTargets,
   minimumCalories,
 } from '@/lib/calculations';
 import Logo from '@/components/Logo';
@@ -69,10 +70,10 @@ export default function OnboardingPage() {
   })();
   const targetCalories = customTarget && calorieOverride != null ? calorieOverride : computedTarget;
   const belowFloor = targetCalories != null && targetCalories < floor;
-  const proteinG = Math.round(weightKg * 1.6);
-  const fatG = targetCalories ? Math.round((targetCalories * 0.25) / 9) : 0;
-  const carbsG =
-    targetCalories ? Math.round(Math.max(0, targetCalories - proteinG * 4 - fatG * 9) / 4) : 0;
+  const macros = macroTargets({ weightKg, targetKcal: targetCalories, goalType: goal });
+  const proteinG = macros.protein ?? 0;
+  const fatG = macros.fat ?? 0;
+  const carbsG = macros.carbs ?? 0;
 
   const canContinue = () => {
     if (step === 0) return name.trim().length > 0;

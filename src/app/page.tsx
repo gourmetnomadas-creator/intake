@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Meal, Profile } from '@/types';
 import { formatDate, getMealTypeLabel, mealEmoji } from '@/lib/utils';
-import { ageFromBirthdate, calculateDailyCalorieTarget, waterTargetMl } from '@/lib/calculations';
+import { ageFromBirthdate, calculateDailyCalorieTarget, macroTargets, waterTargetMl } from '@/lib/calculations';
 import { getUserSession } from '@/lib/session';
 import AppShell from '@/components/AppShell';
 import DailySummaryCard from '@/components/DailySummaryCard';
@@ -114,19 +114,15 @@ export default function TodayDashboard() {
     manual_calorie_target: profile.manual_calorie_target,
   }) : null;
 
-  const proteinTarget = profile?.current_weight_kg
-    ? Math.round(profile.current_weight_kg * 1.6)
-    : targetKcal
-    ? Math.round((targetKcal * 0.3) / 4)
-    : null;
-
-  // Balanced macro-gram targets from the calorie goal: fat ~25% of kcal,
-  // carbs fill the rest after protein and fat.
-  const fatTarget = targetKcal ? Math.round((targetKcal * 0.25) / 9) : null;
-  const carbsTarget =
-    targetKcal && proteinTarget && fatTarget
-      ? Math.round(Math.max(0, targetKcal - proteinTarget * 4 - fatTarget * 9) / 4)
-      : null;
+  const {
+    protein: proteinTarget,
+    carbs: carbsTarget,
+    fat: fatTarget,
+  } = macroTargets({
+    weightKg: profile?.current_weight_kg,
+    targetKcal,
+    goalType: profile?.goal_type,
+  });
 
   const totals = {
     totalKcal: meals.reduce((sum, m) => sum + m.total_kcal, 0),

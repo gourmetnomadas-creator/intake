@@ -1,7 +1,7 @@
 'use client';
 
 import { Profile, Meal } from '@/types';
-import { calculateDailyCalorieTarget, ageFromBirthdate } from '@/lib/calculations';
+import { calculateDailyCalorieTarget, ageFromBirthdate, macroTargets } from '@/lib/calculations';
 import WeightTrendChart from './WeightTrendChart';
 
 interface ProfileCardProps {
@@ -41,11 +41,11 @@ export default function ProfileCard({
     manual_calorie_target: profile.manual_calorie_target,
   });
 
-  const proteinTarget = profile.current_weight_kg
-    ? Math.round(profile.current_weight_kg * 1.6)
-    : targetKcal
-    ? Math.round((targetKcal * 0.3) / 4)
-    : null;
+  const proteinTarget = macroTargets({
+    weightKg: profile.current_weight_kg,
+    targetKcal,
+    goalType: profile.goal_type,
+  }).protein;
 
   // No invented goal: showing a target the user never chose reads as theirs.
   const goalWeight = profile.goal_weight_kg;
